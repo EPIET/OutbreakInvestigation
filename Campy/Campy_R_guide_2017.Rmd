@@ -1,0 +1,397 @@
+---
+title: "An outbreak of Campylobacter jejuni in Greece"
+author: "Patrick Keating and Alexander Spina"
+date: "29 June 2017"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: 
+      toc: yes
+      toc_float:
+        collapsed: no
+        smooth_scroll: yes
+geometry: margin=1.5cm
+---
+
+**Contributors to *R* code:**  
+Daniel Gardiner (PHE) and Lukas Richter (AGES)
+
+**2018 edition revised by:**
+Ashley Sharp (PHE) and Hikaru Bolt (PHE)
+
+The following code has been adapted to *R* for learning purposes. The initial contributors are listed below. All copyrights and licenses of the original document apply here as well. 
+
+**Authors:**  
+Ioannis Karagiannis
+
+**Revisions**  
+**December 2011:** Major expansion of background and rationale; addition of preliminary questions; addition of explanation of variables; added help for tasks of descriptive analysis; expansion of the help in the univariable analysis; major expansion of the help provided for the stratified analysis  
+**November 2012:** Breakdown of background to more questions to facilitate learning; addition of a table and a map for attack rates by municipality and by age group; renamed variable "gender" to "sex" to indicate biological sex; added IDs to dataset; creation and addition of variable "well" to teach confounding; minor changes in the phrasing of the tasks throughout; addition of two-by-two tables for univariate analysis.  
+**November 2013:** Minor clarifications in the background; change of the wording from "case-cohort" to "case-control" throughout; clarifications in the help provided throughout.  
+**December 2015:** Minor clarifications in the background; addition of expected learning outcomes; addition of loops in Stata; addition of an information bubble on user-written commands; minor stylistic improvements throughout.  
+**December 2016:** Removal of three two-by-two tables; addition of answers on the presence of effect modification/confounding in Table 6; correction of typos.
+
+#An introduction to the R companion#
+
+“To understand computations in R, two slogans are helpful:
+
+- Everything that exists is an object.
+
+- Everything that happens is a function call.
+
+John Chambers
+
+If you look at the Global Environment panel (by default in the upper right of the screen) you will see a list of objects stored in that environment. When you load your data in R you create an object. This is completely separate from the data file itself (the excel file, or csv file etc). You can create as many objects as you like, for example you could store a few variables from your original data as a new object, or create a summary table and store that. 
+
+Functions in R are equivalent to commands in STATA. All functions take the form of a name followed by brackets e.g. functionname(). Inside the brackets go various arguments. You can access the help file for a function by calling ?functionname. The help file will show which arguments the function takes and what the function does. Arguments have a default order, as specified in the help file, though you can override this by specifying which argument you are entering using the equals sign "=".
+
+A good reference for R users is the book R for Data Science by Garrett Grolemund and Hadley Wickham. This is available free online at http://r4ds.had.co.nz/.
+
+###RStudio projects
+The easiest way to work with R is using RStudio 'projects'. RStudio is a graphical user interface that runs R in the background. A 'project' is an RStudio file that saves your workspace so you can easily pick up from where you left off. Put all the files that you will need for this case study in a folder called 'Copenhagen' and create a project in the same folder by clicking file -> new project -> existing directory, and choosing the folder. For simplicity, make sure there are no subfolders in this folder, and put all data and scripts in the main Copenhagen folder. 
+
+###Setting your working directory 
+Just as in STATA you can set a folder to be your working directory (using the setwd() command). Open the project that you've created and you will see that the working directory is the same as folder itself: you can check this by calling getwd().You can see what's in your working directory by looking at the **Files tab** (by default in the bottom right area of the screen). If you want to set your working directory you use the function setwd("C:/Users/yourname/Desktop/Campy"). Note that R paths use forward slashes "/", while windows paths use back slashes "\\"  so if you copy a path from windows you have to change them manually.
+
+```{r, eval=F}
+getwd()
+```
+
+###Installing packages and functions
+
+R packages are bundles of functions which extend the capability of R. Thousands of add-on packages are available in the main online repository (known as CRAN) and many more packages in development can be found on GitHub. They may be installed and updated over the Internet.
+
+We will mainly use packages which come ready installed with R (base code), but where it makes things easier we will use add-on packages. In addition, we have included a few extra functions to simplify the code required. 
+
+Run the following code at the beginning of the day to make sure that you have made available all the packages and functions that you need. Be sure to include it in any scripts too.
+
+```{r, echo = TRUE, results='hide', message=FALSE, warning=FALSE}
+# Loading required packages for the week
+library(ggplot2)
+library(foreign)
+library(Hmisc)
+library(epiR)
+library(knitr)
+```
+
+Note:  This code assumes the packages are already installed. You only need to install a package once. If this code does not work, try installing the packages using the code below.
+
+```{r, eval = F}
+install.packages("package name in quotation makrs")
+```
+
+R and Stata have minor differences in default settings and methods. In this document we will follow the Stata analysis as closely as possible, but small and usually unimportant differences may be noted between the statistical findings in R and those in Stata. At some points additional steps (which would usually be optional in R) will be taken to produce output which is comparable to that of Stata.
+
+#Getting started
+
+## Functions required in this session
+
+There are two functions you will need to use in this session. You can use them once you've set the working directory. The **epicurve** function allows creation of easily formatted epicurves. To find out more about the function, first load it as above and then click on function in the **Global Environment** tab on the right of the R Studio window. The **single variable analysis** function allows calculation of attack rates of multiple variables at one time and provides similar output to the cctable and cstable commands in Stata.
+
+
+```{r}
+#These scripts need to be present in your working directory
+
+# Adds a function to create epicurves
+source("epicurve.v.1.8.R") 
+
+# Adds a function to create output similar to cctable or cstable in Stata
+source("single.variable.analysis.v0.2.R") 
+```
+
+## Reading in your dataset
+You will work with Stata.dta data sets which can be loaded into R with the "foreign" or "readstata13" packages. You can read in the Stata dataset to R using the foreign package and its read.dta function.
+
+```{r}
+campy <- read.dta("campy.dta", convert.factors = FALSE)
+```
+
+
+## Browsing your dataset 
+*R studio* has the nice feature that everything is in one browser window, so you can browse your dataset and your code without having to switch between browser windows. 
+
+```{r, eval=F}
+# to browse your data, use the View command
+View(campy)
+```
+
+Alternatively, you can also view your dataset by clicking on **campy** in the top right **global environment** panel of your *R studio* browser.  Your global environment is where you can see all the datasets, functions and other things you have loaded in the current session.   
+
+
+# Analytical epidemiology
+## Task 2. How many observations does your dataset have? How many cases and how many controls does it contain?
+### Help, Task 2
+You can browse the dataset in order to see how it looks like and how many variables it includes. An indirect way of looking how many observations your dataset contains is the **table** command. You can use it for a single variable along with the option **useNA = "always"** to make sure that the missing values are also displayed in the output.  
+```{r, eval=F}
+# View  data set
+View(campy)
+
+# Assess a single variable using the table function
+table(campy$datesym, useNA = "always")
+
+# View number of controls and cases
+table(campy$case, useNA = "always")
+```
+
+## Task 3. Explore each one of the variables. What information do they contain? Are they labelled? Are they categorical or continuous variables?
+### Help, Task 3
+
+### Describing your dataset 
+You can view the structure of your data set using the following commands. Each of these commands can be run for individual variables also. You can refer to an individual variable of a data set by using the **$**, for example, if you wanted to obtain a summary of the age variable, then you would write **summary(campy\$age)**.  
+
+```{r, eval=F}
+# str provides an overview of the number of observations and variable types
+str(campy)
+
+# summary provides mean, median and max values of your variables
+summary(campy)
+
+# summary of age
+summary(campy$age)
+
+# describe (from Hmisc package) provides no. of observations, missing values, unique levels of each variable
+describe(campy) 
+```
+
+## Task 4. Can you think of any variables you could generate based on the ones you already have?
+### Help, Task 4
+Both powder milk and concentrated milk are types of milk that need to be diluted with water. For this reason, it may be of interest to combine the two to a single variable. We can use the same logic of if statements in Excel to create this new variable. The **|** below stands for **or**. For example:  
+```{r}
+campy$diluted <- ifelse(campy$concentrated == 1 | campy$powder == 1, 1, 0)
+```
+
+## Task 5. Perform a descriptive analysis:
+### Help, Task 5
+
+To see if the age distribution between cases and controls differs (which you might not expect, since you have frequency-matched for age), you can use either the t-test or the Wilcoxon's ranksum test (also called the Mann-Whitney test). The first one can be used only when the distribution of age in both groups is normal. The latter one can be used otherwise.
+
+The Shapiro-Wilk test is a normality test. Its null hypothesis is that the normal distribution is followed. Hence, a p-value below your alpha (usually 0.05) means that the normal distribution is not followed. To test whether the age distribution is normal among both cases and controls, you can run:  
+
+```{r}
+shapiro.test(campy$age)
+```
+
+You can also visualise the distribution of age among cases and controls.
+
+Below we use the qplot function from the package ggplot2 and create histograms of the age of cases and controls. We can specify labels for the x-axis and y-axis as well as titles.
+
+```{r}
+age_hist_cases <- qplot(campy$age[campy$case == 1],
+                       xlab = "Age",
+                       ylab = "Count",
+                       main = "Histogram of the age of the cases ",
+                       binwidth = 1)
+age_hist_cases
+```
+
+```{r warning=FALSE}
+age_hist_controls <- qplot(campy$age[campy$case == 0],
+                       xlab = "Age",
+                       ylab = "Count",
+                       main = "Histogram of the age of the controls ",
+                       binwidth = 1)
+age_hist_controls
+```
+
+Age does not appear to be very normally distributed.  
+
+Now that you are absolutely sure that the hypothesis of normality in the variable age is not really the case, you choose to run Wilcoxon's ranksum test:  
+```{r}
+wilcox.test(age ~ case, data = campy)
+```
+
+If you had gone for the t-test, the command would have been:  
+
+```{r, eval=F}
+t.test(age~case, var.equal = TRUE, data = campy)
+```
+
+Note: The null hypothesis in both t-test and Wilcoxon's ranksum test is that the mean (or median, respectively) of the continuous variable (age) does not differ between the two groups of your dichotomous variable case (cases and controls). P-values lower than your alpha suggest you should consider that age differs between cases and controls.
+
+We would also like to construct an **epidemic curve**. We can use the previously loaded epicurve function (created by Daniel Gardiner FETP fellow from C2015). This function is very flexible and can be adapted to a variety of different data formats. You can read about all the different elements of this function by clicking on the funcion in the Global environment.
+
+You can now format the epicurve in terms of the time period (day, week, month, quarter etc), the start and stop date, labels and more.  
+```{r message=FALSE, warning=FALSE}
+epicurve_campy <- epicurve(campy, date.col = "datesym", time.period = "day",
+                start.at = "2009-05-25", stop.at = "2009-06-15",
+                xlab = "Date of symptom onset", ylab = "Count",
+                col.pal = 4, label.breaks = 0, epi.squares = TRUE, na.rm = TRUE)
+
+# As epicurve_campy is a ggplot object, it is possible to tailor it as desired
+epicurve_campy <- epicurve_campy +
+                  # rotating the x axis label by 90               
+                  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+                  # adding a title
+                  ggtitle("Campylobacter outbreak cases by date of onset, May-June 2009") +
+                   # centring the title and reducing its size 
+                  theme(plot.title = element_text(hjust = 0.5, size = 11)) 
+
+epicurve_campy
+
+# You can save the epicurve as follows
+ggsave(filename = "epicurve.png")
+```
+
+## Task 6. Conduct the univariate analysis
+### Help, Task6
+The appropriate measure of impact for a case-control study is the odds ratio (OR). The **epi.2by2** function calculates the OR, 95% CI and the attributable fraction among the exposed in the population.
+
+In order to use the epi.2by2 function, we first need to convert the outcome and exposure variables into factor/categorical variables to facilitate interpretation.  
+
+```{r}
+# We list the outcome/exposure variables
+vars <- c("case", "sex", "supply", "tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "microwave2", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+
+
+# Convert all of those variables to factor variables and re-order the levels to aid interpretation
+for (var in vars) {
+  campy[,var] <- factor(campy[,var],levels = c(1,0)) 
+}
+```
+
+The epi.2by2 function can be used to calculate both RRs and ORs and you can find out more information on the function by writing **?epi.2by2** in the console. The epi.2by2 function requires data to be in a table format and we specify that we want to calculate ORs by adding **method = "case.control"** as below. You can do that first for the variables sex, supply and well.  
+
+```{r}
+# Create a table with exposure and outcome variables
+sex <- table(campy$sex, campy$case)
+
+# Apply epi.2by2 function to the table
+uni_sex <- epi.2by2(sex, method = "case.control")
+uni_sex
+
+supply <- table(campy$supply, campy$case)
+uni_supply <- epi.2by2(supply, method = "case.control")
+uni_supply
+
+well <- table(campy$well, campy$case)
+uni_well <- epi.2by2(well, method = "case.control")
+uni_well
+```
+Instead of looking at each variable one-by-one, we can also add the **exposure variables** in a loop and apply the epi.2by2 function to each variable of interest at one time and save the resulting outputs to a list of dataframes.    
+
+```{r,eval=F}
+vars2 <- c("sex", "supply", "tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "microwave2", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+
+# Create an empty list to store the output of the loop
+output <- list()
+
+for (var in vars2) {
+  # We make a table with each exposure variable and the case variable
+  table <- table(campy[,var], campy$case) 
+  # apply epi.2by2 function to each table
+  uni_table <- epi.2by2(table, method = "case.control")
+  # Save the results in the output list
+  output[[var]] <- uni_table
+}
+
+output
+```
+
+The next step would involve extracting the relevant data from the output to make our final table of interest, which could take some time. This process can be sped up through the use of the **single variable analysis** function created by Daniel Gardiner (FETP fellow from C2015). This function gives similar output to **cctable** in Stata.
+
+In order for this function to give similar output to the cctable command, the exposure and outcome variables must be converted to numeric variables as below:  
+
+**Note**: It is not possible to directly convert a factor variable to a numeric variable. You must first convert the factor variable to a character and then convert the character to a numeric variable.  
+
+```{r}
+vars <- c("case", "sex", "supply", "tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "microwave2", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+
+
+# Convert factor to character to numeric
+for (var in vars) {
+  campy[,var] <- as.numeric(as.character(campy[,var])) 
+}
+```
+
+The variables are now in a format compatible with the single variable analysis (sva) function.  You can learn more about this function either by clicking on **sva** in the functions section of the global environment or typing **View(sva)** in the console.
+
+The sva function requires definition of:  
+
+* the data set
+* the outcome of interest
+* the exposure variable(s)
+* the measure (OR or RR) and
+* verbose (FALSE gives restricted output)  
+  
+
+```{r, message = FALSE, warning=FALSE}
+vars2 <- c("sex", "supply", "tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "microwave2", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+
+
+# Use the sva function, specifying each element of the function
+a <- sva(campy, outcome = "case", exposures = c(vars2), measure = "or", verbose = TRUE)
+
+```
+
+```{r,echo = FALSE}
+kable(a, digits = 2)
+```
+
+## Stratified analysis
+We have seen so far that some exposures appear to be statistically significantly associated with being a case. Some other exposures do not appear to be associated with disease outcome.
+Because you're a field epidemiologist, you decide not to stop your analysis yet. You think your results are very interesting and, after a short but intense discussion with your boss, you go further and perform a stratified analysis.
+
+## Task 7. Stratify by water supply zone and identify effect modification or confounding
+### Help, Task7
+Stratifying essentially means to run the same analysis as in the univariate analysis,but restricting the analysis to the two separate strata we are interested in each time (in this case, the rural area and the town area)
+
+We will illustrate the effect of stratification using tap as the exposure variable and supply as stratifiying variable. As we will use the **epi.2by2** function to perform the stratification, we first need to reconvert the outcome and exposure variables to factor variables.  Note: the sva function doesn't currently have a stratifying function.
+
+```{r}
+# The outcome and exposure variables were defined above as vars
+
+# Convert all of those variables to factor variables and re-order the levels to aid interpretation
+for (var in vars) {
+  campy[,var] <- factor(campy[,var],levels = c(1,0)) 
+}
+```
+
+First, we conduct the univariate analysis with **tap** as the exposure variable:  
+```{r}
+tap <- table(campy$tap, campy$case)
+uni_tap <- epi.2by2(tap, method = "case.control")
+uni_tap
+```
+
+Now, we will repeat the above analysis while stratifying by water supply, where supply = 1 is for rural areas and supply = 0 is for urban areas.  
+
+```{r}
+# Based on supply = 1
+tap1 <- table(campy$tap[campy$supply == 1], campy$case[campy$supply == 1])
+tap_supp1 <- epi.2by2(tap1, method = "case.control")
+tap_supp1
+
+# Based on supply = 0
+tap0 <- table(campy$tap[campy$supply == 0], campy$case[campy$supply == 0])
+tap_supp0 <- epi.2by2(tap0, method = "case.control")
+tap_supp0
+```
+The above approach provides the stratum-specific ORs, which we can compare to the crude odds ratio from the univariate analysis above. However, it does not provide the Mantel-H?nszel (M-H) odds ratio. We can obtain the M-H odds ratio and loop over the exposure variables of interest by doing the following:  
+
+
+```{r}
+# Define the exposure variables to be included in the analysis
+vars4 <- c("tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+
+# The variable "microwave 2" was excluded from the list of variables as it blocks the loop
+
+# Create a list to store the output
+output2 <- list()
+
+# create a 3 way table for each exposure variable of interest, the outcome and stratifiying variable in that order
+for (var in vars4) {
+  a <- table(campy[,var], campy$case, campy$supply)
+  # Use the epi.2by2 function to calculate OR  
+  mh <- epi.2by2(a, method = "case.control")
+  # Identify the elements of interest from the mh object and append together 
+  resultstable <- round(rbind(mh$massoc$OR.crude.wald, 
+                        mh$massoc$OR.strata.wald, 
+                        mh$massoc$OR.mh.wald),2)
+  # Create labels for each row of the results table
+  rownames(resultstable) <- c("Crude", "Strata 1", "Strata 0", "MH")
+  output2[[var]] <- resultstable
+}
+
+output2
+```
+

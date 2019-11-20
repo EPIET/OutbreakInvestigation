@@ -1,0 +1,317 @@
+---
+title: "UK FETP methods in outbreak investigations: mapping exercise"
+author: "Adapted from material by Daniel Gardiner and Amy Mikhail"
+date: "11 - 15 November 2019"
+output:
+  html_document: 
+      toc: yes
+      toc_float:
+        collapsed: no
+        smooth_scroll: yes
+  pdf_document: 
+      toc: true
+      toc_depth: 3
+urlcolor: blue
+---
+
+```{r restrict output, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+
+################################################################
+# FUNCTION TO RESTRICT RESULTS TO A FEW LINES OF OUTPUT:
+
+# Check if knitr is installed, if not install it:
+if (!requireNamespace("knitr", quietly = TRUE)) install.packages("knitr")
+
+# Load knitr
+library(knitr)
+
+# Define empty output:
+hook_output <- knit_hooks$get("output")
+
+# Function to restrict lines of output:
+knit_hooks$set(output = function(x, options) {
+  lines <- options$output.lines
+  if (is.null(lines)) {
+    return(hook_output(x, options))  # pass to default hook
+  }
+  x <- unlist(strsplit(x, "\n"))
+  more <- "..."
+  if (length(lines)==1) {        # first n lines
+    if (length(x) > lines) {
+      # truncate the output, but add ....
+      x <- c(head(x, lines), more)
+    }
+  } else {
+    x <- c(more, x[lines], more)
+  }
+  # paste these lines together
+  x <- paste(c(x, ""), collapse = "\n")
+  hook_output(x, options)
+})
+
+``` 
+
+# Introduction
+
+For this exercise, you have been provided with a line list of cases from an outbreak associated with raw drinking milk that was contaminated with shiga toxin producing *Escherichia coli* (STEC).  The primary exposure was at a farm in the South West of England, but other cases purchased raw milk from the farm that was distributed in a mobile van.  You have been provided with patient residence postcodes and exposure postcodes, which you can use for this mapping exercise.
+
+**Geocoding** (the process of converting postcodes to longitude and latitude) is done by using a postcode lookup table, which is typically accessed from either a public database or a mirror of this database that is held by the PHE GIS team.  It can be challenging to geocode using the public databases as these often have a cap on the number of postcodes you can geocode at one time.  Conversely, geocoding with the PHE GIS database requires permission to access that database which is only possible for PHE staff.  In case of any difficulties with this step, you have been provided with a pre-geocoded dataset as well.
+
+This R markdown guide provides a coding template, which you can manipulate in order to complete the exercises.
+
+
+# Required packages
+
+You can use this section to install and load the packages that you will need for this session:
+
+```{r packages}
+
+##################################################################
+# INSTALL PACKAGES
+
+# Create a list of CRAN packages you will need for this session:
+pkglist <- c("rgdal", 
+             "ggmap", 
+             "ggplot2", 
+             "maptools", 
+             "scales", 
+             "leaflet", 
+             "leaflet", 
+             "htmlwidgets", 
+             "RColorBrewer", 
+             "here", 
+             "devtools")
+
+# Check if packages are already installed, if not install them:
+if (!requireNamespace(c(pkglist), quietly = TRUE)) install.packages(c(pkglist))
+
+
+##################################################################
+# LOAD PACKAGES:
+
+# Loop through the CRAN packages in the list with lapply and load them:
+lapply(c(pkglist), library, character.only = TRUE)
+
+
+
+```
+
+
+If you are a member of PHE staff, run this section to install and load the `rgisws` package that uses the PHE GIS database postcode lookup to geocode cases to longitude and latitude, northings and eastings, geographic areas such as HPT and PHEC, local authorities etc.  Non-PHE staff should use the pre-geocoded dataset; other publically available options will be discussed during the practical.
+
+```{r rgisws}
+
+# Install the rgisws package from the PHE Gitlab repository (PHE staff only - needs R tools):
+if (!requireNamespace("rgisws", quietly = TRUE)) {
+  devtools::install_git('https://gitlab.phe.gov.uk/ERD/GIS/rgisws.git', build_vignettes = TRUE)
+} 
+
+# Load the rgisws package (PHE staff only)
+library(rgisws)
+
+```
+
+
+# Setting your working directory
+
+In this practical you can use the `here` package to determine your working directory.  If you extract the .zip file containing this script, a `.here` place-holder has already been added for convenience; this will automatically set the working directory to the directory in which the `.here` file is located or where you have set up an `.Rproj` (R project) file (recommended).
+
+```{r set working directory}
+
+# Check the location of your current working directory:
+getwd()
+
+# If happy with this location, set a placeholder in the current directory:
+here::set_here()
+
+# Create working directory:
+wd <- here::here()
+
+# Set the working directory relative to the location of the .here file you just created:
+setwd(wd)
+
+
+```
+
+
+# Reading in the data
+
+In this section you can read in (import) the dataset.  This should be in the folder you downloaded and extracted, which also contains this script.  Non-PHE staff should read in the pre-geocoded data set and skip the next step.
+
+```{r import data}
+
+# Read in raw data (not geocoded - PHE staff only):
+data <- read.csv("data/CaseStudy_RDM_anon_data.csv", stringsAsFactors = FALSE)
+
+# Read in raw data (geocoded - for non-PHE staff):
+data <- read.csv("data/CaseStudy_RDM_anon_data_coords.csv", stringsAsFactors = FALSE)
+
+# Read in population data for PHE Centres:
+phecpop <- read.csv("data/PHEC_population.csv")
+
+```
+
+
+# Geocoding the data
+
+Run this section if you are a PHE member of staff and have permission to access the PHE GIS database.  Otherwise, please skip this step and use the pre-geocoded dataset instead.  This section will geocode patient residence postcodes.
+
+```{r geocode}
+
+# Define geographies you want to fetch:
+cols2add <- c('longitude', 'latitude', 'phec')
+
+# Map postcodes to geographies with the postcode_lookup function in the rgisws package:
+postcodes_geog <- rgisws::postcode_lookup(postcodes = data$postcode_home, 
+                                          col_names = cols2add, 
+                                          xy = TRUE, 
+                                          return_names = TRUE)[, c("pcds", "x", "y", "latitude", "longitude", "phec_nm")]
+
+# Rename x and y to easting and northing:
+names(postcodes_geog)[names(postcodes_geog) == 'x'] <- 'easting'
+names(postcodes_geog)[names(postcodes_geog) == 'y'] <- 'northing'
+
+# Append returned geographies to data:
+data <- merge(data, postcodes_geog, by.x = "postcode_home", by.y = "pcds", all.x = TRUE)
+
+```
+
+
+# Creating a spot map with static background
+
+In this section you will import a static map from google maps to use as background and plot the points you geocoded ontop of this.
+
+```{r static point map}
+
+## Create a boundary box to zoom manually
+bbox <- ggmap::make_bbox(longitude, latitude, data, f = 0.5)
+
+## Get a map centred on the boundary box
+map_loc <- ggmap::get_map(location = bbox, source = 'google', maptype = "roadmap", crop = FALSE, color = "bw")
+
+## Plot the map in the background
+map <- ggmap::ggmap(map_loc, extent = 'device', maprange = FALSE)
+
+## Add the points for each case: here they have been coloured by the variable sex
+map <- map + geom_point(data = data, aes(x = longitude, y = latitude, fill = sex), colour = "black", pch = 21, size = 5) +
+             scale_fill_manual(values = c("darkred", "turquoise")) +
+             labs(fill = "Sex") +
+             scale_size(guide = "none")
+
+## View the map
+map
+
+## Save the map as a .pdf
+ggmap::ggsave("Map of cases - google.pdf", width = 9, height = 9, dpi = 300)
+
+```
+
+
+# Creating a spot map with shapefiles - v1
+
+In this section, we will use some shape files to create the same map but with shape files instead:
+
+```{r shapefiles v1}
+
+# Plot shapefile by itself (Shows borders of the 9 PHE Centres)
+
+## Read in shape file for PHE Centres from the 'shapefiles' folder:
+map <- readOGR("shapefiles")
+
+## Fortify the map (i.e. convert to a data.frame so you can append the data you want to plot)
+map.fort <- fortify(map)
+
+## Plot the PHEC polygons:
+p <- ggplot(map.fort, aes(x = long, y = lat, group = group))
+
+p <- p + geom_polygon(colour = "black", fill = "grey")
+
+p <- p + coord_fixed()
+
+p <- p +  theme_nothing(legend = TRUE)
+
+p
+
+# Plot cases onto the map:
+
+## Set group:
+data$group = 1
+
+## Plot the map with PHEC polygons and cases: ## doesn't work!
+p <- p + geom_point(data = data, 
+                   aes(x = "easting", y = "northing", group = "group"), 
+                   aes(x = easting, y = northing, group = group), 
+                   colour = "#892034", size = 4.5)
+
+p
+
+## Save the map as a .pdf
+setwd(wd)
+
+ggmap::ggsave("Map of cases - shapefile.pdf", width = 9, height = 9, dpi = 300)
+
+
+```
+
+
+# Creating a spot map with shapefiles - v2
+
+In this section, you can create the same map with a different sub-set of shape files:
+
+```{r shapefiles v2}
+
+# 04. Another point map - stratified by sex:
+
+# plot cases onto shapefile, coloured by sex
+setwd(paste0(wd, "/shapefiles"))
+
+map = readShapePoly("En_PHE_Centre.shp")
+
+map.fort = fortify(map)
+
+data$group = 1
+
+p = ggplot(map.fort, aes(x = long, y = lat, group = group))
+
+p = p + geom_polygon(colour = "white", fill = "grey")
+
+p = p + coord_fixed()
+
+p = p + theme_nothing(legend = TRUE)
+
+
+p = p + geom_point(data = data, 
+                   aes(x = easting, y = northing, group = group, 
+                       colour = sex), size = 4, alpha = 0.8)
+
+p = p + scale_color_manual(values = c("#892034", "#00AB8E"))
+
+
+setwd(wd)
+
+map <- readOGR("shapefiles")
+
+map.fort <- fortify(map)
+
+data$group <- 1
+
+p <- ggplot(map.fort, aes(x = long, y = lat, group = group))
+
+p <- p + geom_polygon(colour = "white", fill = "grey")
+
+p <- p + coord_fixed()
+
+p <- p + theme_nothing(legend = TRUE)
+
+
+p <- p + geom_point(data = data, 
+                   aes(x = easting, y = northing, group = group, colour = sex),
+                   size = 4, alpha = 0.8)
+
+p <- p + scale_color_manual(values = c("#892034", "#00AB8E"))
+
+p
+
+
+```
+
