@@ -536,7 +536,7 @@ table(cph$dayonset[(cph$diarrhoea != 1 | is.na(cph$diarrhoea)) &
 cph %>% 
   filter(if_all(.cols = c(diarrhoea, bloody, vomiting),
                 .fns = ~ (. != 1 | is.na(.))
-                # .fns = ~ (. %in% c(0, NA)) better, but didactically worse?
+                # .fns = ~ (. %in% c(0, NA)) more robust and shorter, but didactically worse?
                 )) %>% 
   select(dayonset) %>% 
   table()
@@ -597,7 +597,7 @@ table(cph$starthour, useNA = "always")
 cph <- cph %>% 
   mutate(dayonset = dmy(dayonset),
          # create new variable that combines dayonset AND starthour
-         # 1. clean format of starthour using regex: consider doing this in the dataset and take out here for less confusion
+         # 1. clean format of starthour using regex: consider doing this in the dataset and take out here for less confusion in participants
          starthour = ifelse(str_detect(cph$starthour, "\\d{2}"), cph$starthour, paste0("0", cph$starthour)), 
          # 2. combine dayonset + starthour
          day_hour = paste0(as.character(dayonset), "-", starthour) %>% ymd_h()
@@ -629,7 +629,7 @@ We can then check how many cases and non-cases we have for our analysis, with th
 
 ```{r}
 # Tabulate the number of cases as a plausibility check
-table(cph$case, useNA = "always")
+table(cph$case, exclude = NULL)
 
 # lots of NAs -why?
 # Maybe symptoms-vars -> How many have no info on all symptoms?
@@ -637,11 +637,11 @@ filter(cph, if_all(c(diarrhoea, vomiting, bloody), ~ is.na(.))) %>% count(.)
 # 135! Which of those have participated in the school dinner?
 filter(cph, if_all(c(diarrhoea, vomiting, bloody), ~ is.na(.)) & meal == TRUE) %>% count(.)
 
-# A recode to consider:
+# old version: 
 # cph$case[(is.na(cph$vomiting) | is.na(cph$diarrhoea) | is.na(cph$bloody)) & cph$meal == 1] <- 0
 
-# We don´t have info on symptoms for 119 who participated in the school dinner -
-# Seems reasonable to say that they probably did not develop symptoms - otherwise they would´ve told
+# We don´t have info on symptoms for 119 who participated in the school dinner and participated in the study
+# It seems reasonable to say that they probably did not develop symptoms - otherwise they would´ve told while filling the survey
 cph <- cph %>% 
   mutate(
     case = ifelse(if_all(c(diarrhoea, vomiting, bloody), ~ is.na(.)) & meal == TRUE, FALSE, case))
