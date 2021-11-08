@@ -247,15 +247,14 @@ The first thing you will need to do is install all the packages you need - to do
 
 # List required CRAN packages to install:
 pkglist <- c("devtools",
-             "here", 
-             "haven", 
-             "data.table", 
+             "tidyverse",
+             "here",
              "lubridate",
-             "ggplot2",
              "Hmisc", 
              "epiR", 
-             "epitools", 
-             "openxlsx")
+             "epitools",
+             "skimr")
+             # "EpiFunc"  --  uncompatible with R 4.x.x
 
 # Check if packages are already installed, if not install them:
 if (!requireNamespace(c(pkglist), quietly = TRUE)) install.packages(c(pkglist))
@@ -301,15 +300,13 @@ The full URL to the `sva` function is here:
 
 # Make a list of the packages you want to load:
 pkgs2load <- c("devtools",
-               "here", 
-               "haven", 
-               "data.table", 
+               "tidyverse",
                "lubridate",
-               "ggplot2",
                "Hmisc", 
                "epiR", 
-               "epitools", 
-               "EpiFunc")
+               "epitools",
+               "skimr"
+               )
 
 # Loop through the packages in the list with lapply and load them:
 lapply(c(pkgs2load), library, character.only = TRUE)
@@ -330,14 +327,13 @@ R can hold one or many data sets in memory simultaneously, so there is usually n
 
 
 ```{r, echo = TRUE, results='hide', message=FALSE, warning=FALSE}
+
 # Read in your data from a csv file 
-# Select separator as comma (sep=",")
-# Do not import 'string' variables as 'Factors' (stringsAsFactors=FALSE) 
-# Factors are a special datatype, covered later - character variables are simpler
-# Data frame read in and saved in R as "cph"
+# use read_csv() as opposed to read.csv()
+cph_raw <- read_csv("Copenhagen_raw.csv")  
 
-cph <- read.csv("Copenhagen_raw.csv", sep = ",", stringsAsFactors = FALSE) 
-
+# create a copy
+cph <- cph_raw
 ```
 
 ### Browsing your dataset 
@@ -377,37 +373,19 @@ Alternatively, you could create an R markdown notebook, which will integrate tex
 
 You can view the structure of your data set using the following commands. Each of these commands can be run for individual variables also. 
 
-`str()` provides an overview of the structure of your data (number of observations and variable types):
+`dplyr::glimpse()` provides an overview of the structure of your data (number of observations and variable types):
 
 ```{r, echo = TRUE, warning=FALSE, output.lines = 9}
 # View structure:
-str(cph)
+glimpse(cph)
 ```
 
-`summary()` provides information on variable classes, as well as interquartile ranges for numeric variables:
-
-```{r, echo = TRUE, warning=FALSE, output.lines = 14}
-# Summarise data:
-summary(cph)
-```
-
-`Hmisc::describe()` provides:
-
- - number of observations
- - number of missing values
- - number of unique levels
- 
-... for each variable in the data set:
-
-\pagebreak
+`skimr::skim()` provides information on variable classes, completeness and number of missing values, as well as mean, sd, quartiles, and a rudimentary histogram for numeric variables:
 
 ```{r, echo = TRUE, warning=FALSE, output.lines = 20}
-# Describe data:
-Hmisc::describe(cph)
+# Summarise data:
+skim(cph)
 ```
-
-
-\pagebreak
 
 
 # 03. Data cleaning and recoding in `R`
@@ -446,7 +424,7 @@ Create a suitable case definition (logical variable in which cases = `TRUE` and 
 
 In the study, a **case** was defined as:
  - a person from the cohort
- - presenting with diarrhoea or vomiting
+ - presenting with diarrhoea, bloody diarrhoea, or vomiting
  - within 48 hours of their meal
 
 Anyone who presented with diarrhoea or vomiting from 6pm on November 11th to 5:59pm on November 13th was included as a case.  All other participants including anyone with symptoms outside this time window are defined as "not ill" (as they probably didn't become sick at the party).
@@ -459,8 +437,6 @@ You may now wish to review your data and check if there are any respondents who 
 ## Help for Task 03:
 
 ### Sub-task 03.01 Error checking:
-
-Using the "table" and "summary" commands, you can get the equivalent of "tabulate" and "summarize" in STATA. In the example below, we look at age in the `cph` dataset.  
 
 You can examine a variable within a dataset using the `$` sign and then the variable name (e.g. `cph$age`). 
 
@@ -514,8 +490,8 @@ table(cph$age)
 ```
 
 ```{r}
-# Summary gives you more detailed statistics as in stata
-summary(cph$age)
+# skimr::skim(VARIABLE) gives you detailed statistics on VARIABLE
+skim(cph$age)
 ```
 
 
@@ -552,6 +528,18 @@ table(cph$meal, cph$veal, deparse.level = 2)
 table(cph$dayonset[(cph$diarrhoea != 1 | is.na(cph$diarrhoea)) & 
                   (cph$vomiting != 1 | is.na(cph$vomiting) & 
                      (cph$bloody != 1 | is.na(cph$bloody))) ])
+
+# instead of having to type out the condition for each variable, dplyr offers the `if_all()`-function:
+# we ask if the condition holds true for all provided columns
+# `if_any()` works analogously
+
+cph %>% 
+  filter(if_all(.cols = c(diarrhoea, bloody, vomiting),
+                .fns = ~ (. != 1 | is.na(.))
+                # .fns = ~ (. %in% c(0, NA)) better, but didactically worse?
+                )) %>% 
+  select(dayonset) %>% 
+  table()
 ```
 
 \pagebreak
@@ -560,13 +548,13 @@ table(cph$dayonset[(cph$diarrhoea != 1 | is.na(cph$diarrhoea)) &
 
 You can use combinations of the 'assign' symbol and conditional statements to recode data.
 
-In addition, the `ifelse(...)` function is very helpful; this function takes a conditional statement as its first argument, followed by the value to assign if that statement is true, and the value to assign if that statement is false.
+In addition, the `ifelse(...)` function is very helpful; this function takes a conditional statement as its first argument, followed by the value to assign if that statement is true, and the value to assign if that statement is false. `case_when(...)` is a development as it allows for assigning different values based on different conditions: *If A is true - do X, if B is true - do Y, if C is true...*
 
 **Note:**
 There are four terms in R which have a specific meaning and are always used without quotes:
 
 - `NA` is the symbol for missing values in R (equivalent to STATA ".")
-- `NULL` is the symbol for an empty slot (e.g. the default for optional funciton arguments is NULL)
+- `NULL` is the symbol for an empty slot (e.g. the default for optional function arguments is NULL)
 - `TRUE` is for logical variables (equivalent of `1` in a STATA binary variable)
 - `FALSE` is for logical variables (equivalent of `0` in a STATA binary variable)
 
@@ -581,24 +569,41 @@ cph$age[cph$age == 16 & cph$group == 0] <- 61
 ```{r}
 # Correct mistake regarding onset date or a start hour
 # Those who have no symptoms should also not have an onset date
-# So this is selecting those that are 0 or empty for each of the three symptoms
 
-cph$dayonset[(cph$diarrhoea == 0 | is.na(cph$diarrhoea)) & 
-                  (cph$vomiting == 0 | is.na(cph$vomiting) & 
-                     (cph$bloody == 0 | is.na(cph$bloody))) ] <-  NA
+cph <- cph %>% mutate(across(
+  .cols = c(dayonset, starthour), 
+  .fns = ~ ifelse(if_all(c(diarrhoea, bloody, vomiting), ~ . %in% c(0, NA)), 
+                  NA, 
+                  .)
+  ))
 
-cph$starthour[(cph$diarrhoea == 0 | is.na(cph$diarrhoea)) & 
-                  (cph$vomiting == 0 | is.na(cph$vomiting) & 
-                     (cph$bloody == 0 | is.na(cph$bloody))) ] <-  NA
 ```
 
 ```{r}
-# Re-code sex to binary
-cph$sex <- ifelse(cph$sex == "male", 1, 0)
-cph$sex <- as.numeric(cph$sex)
 
+# Re-code sex to double -> why? why not factor?
+cph <- cph %>% 
+  mutate(sex = ifelse(sex == "male", 1, 0) %>% as.double())
 
 ```
+
+```{r}
+
+# Get an overview of dayonset and starthour
+table(cph$dayonset, useNA = "always")
+table(cph$starthour, useNA = "always")
+
+# recode dayonset from character to time-format and create new variable that unites dayonset and starthour
+cph <- cph %>% 
+  mutate(dayonset = dmy(dayonset),
+         # create new variable that combines dayonset AND starthour
+         # 1. clean format of starthour using regex: consider doing this in the dataset and take out here for less confusion
+         starthour = ifelse(str_detect(cph$starthour, "\\d{2}"), cph$starthour, paste0("0", cph$starthour)), 
+         # 2. combine dayonset + starthour
+         day_hour = paste0(as.character(dayonset), "-", starthour) %>% ymd_h()
+         )
+```
+
 
 \pagebreak 
 
@@ -607,35 +612,39 @@ cph$sex <- as.numeric(cph$sex)
 You can create a new variable called 'case' which will have the value 1 if the person meets the case definition, otherwise 0 (for non-cases).  You can build a set of conditional statements to do this.  It is best to start with missing values, as for some people we don't have the information that we need to decide whether they are a case or not. 
 
 ```{r}
-# Create a new (empty) variable called case:
-cph$case <- NA
 
-# Assign 0 to those without symptoms
-cph$case[cph$vomiting == 0 & cph$diarrhoea == 0 & cph$bloody == 0] <- 0
-
-# Assign 1 to those with diarrhoea or vomiting
-cph$case[cph$diarrhoea == 1 | cph$vomiting == 1] <- 1
-
-# Assign 0 to those who had onset before 11th nov 18:00 or after 13th nov 18:00
-cph$case[cph$case == 1 & 
-            ((cph$dayonset == "11nov2016" & cph$starthour < 18) |
-               (cph$dayonset == "13nov2016" & cph$starthour > 18) | 
-                 cph$dayonset > "13nov2016")] <- 0
-
-# Assign NA (missing value) to those who haven't been exposed to any food item
-cph$case[is.na(cph$meal) | cph$meal == 0] <- NA
+# create case definition 
+cph <- cph %>% 
+  mutate(case = case_when(
+    if_any(c(diarrhoea, vomiting, bloody), ~ . == TRUE) ~ TRUE, # has any symptoms
+    if_all(c(diarrhoea, vomiting, bloody), ~ . == FALSE) ~ FALSE, # has no symptoms
+    day_hour < dmy_h("11.11.2006 18") ~ FALSE, # onset before
+    day_hour > dmy_h("13.11.2006 18") ~ FALSE, # onset after
+    meal == FALSE ~ NA, # not exposed to any food - could be a control though?!
+    ))
 
 ```
 
 We can then check how many cases and non-cases we have for our analysis, with the `table(...)` command.  There are a lot of missing values in the new 'case' variable; it might be worth considering assigning a `0` (i.e. code for non-case) to people who have no data for any symptoms (but think about the pros and cons of this assumption):
 
 ```{r}
-# Tabulate the number of cases
-table(cph$case, exclude = NULL)
+# Tabulate the number of cases as a plausibility check
+table(cph$case, useNA = "always")
 
+# lots of NAs -why?
+# Maybe symptoms-vars -> How many have no info on all symptoms?
+filter(cph, if_all(c(diarrhoea, vomiting, bloody), ~ is.na(.))) %>% count(.)
+# 135! Which of those have participated in the school dinner?
+filter(cph, if_all(c(diarrhoea, vomiting, bloody), ~ is.na(.)) & meal == TRUE) %>% count(.)
 
 # A recode to consider:
-cph$case[(is.na(cph$vomiting) | is.na(cph$diarrhoea) | is.na(cph$bloody)) & cph$meal == 1] <- 0
+# cph$case[(is.na(cph$vomiting) | is.na(cph$diarrhoea) | is.na(cph$bloody)) & cph$meal == 1] <- 0
+
+# We don´t have info on symptoms for 119 who participated in the school dinner -
+# Seems reasonable to say that they probably did not develop symptoms - otherwise they would´ve told
+cph <- cph %>% 
+  mutate(
+    case = ifelse(if_all(c(diarrhoea, vomiting, bloody), ~ is.na(.)) & meal == TRUE, FALSE, case))
 
 ```
 
@@ -645,10 +654,11 @@ Do a plausibility check to see if everything worked:
 # How many cases did you generate? 
 table(cph$case, exclude = NULL)
 
-#check if people were assigned properly according to symptoms
-table(cph$case, cph$vomiting, deparse.level = 2)
-table(cph$case, cph$diarrhoea, deparse.level = 2)
-
+# check if people were assigned properly:
+# 1. anyone with symptoms, but not a case?
+filter(cph, if_any(c(vomiting, diarrhoea, bloody), ~ . == 1 & case == FALSE))
+# 2. anyone without symptoms but a case?
+filter(cph, if_all(c(vomiting, diarrhoea, bloody), ~ . %in% c(0, NA) & case == TRUE))
 ```
 
 For the sake of the anlysis, we exclude any people from the cohort who didn't eat at the dinner, because we specifically hypothesise a food item to be the vehicle of the outbreak. Excluding persons reduces the sample size and therefore the power slightly, but the investigators considered that this would increase specificity.
@@ -656,7 +666,7 @@ For the sake of the anlysis, we exclude any people from the cohort who didn't ea
 We can drop cases that do not meet the case definition by subsetting the data to those where a value for the `case` variable is not missing: 
 
 ```{r}
-cph <- cph[!is.na(cph$case), ]
+cph <- filter(cph, !is.na(case))
 ```
 
 
