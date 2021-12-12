@@ -3,15 +3,11 @@ title: "Outbreak investigation module: mapping exercise"
 author: "Adapted from material by Daniel Gardiner and Amy Mikhail"
 date: "10 December 2021"
 output:
-  html_document: 
-      toc: yes
-      toc_float:
-        collapsed: no
-        smooth_scroll: yes
-  pdf_document: 
+  github_document: 
       toc: true
       toc_depth: 3
 urlcolor: blue
+always_allow_html: true
 ---
 
 ```{r restrict output, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
@@ -75,7 +71,7 @@ For each processing step, **one example** has been provided; while working throu
 
 There are several different "data wrangling" packages in R (the main three approaches being base R, `data.table` and `dplyr`).  Base R syntax can be very long-winded and few people use it any more for data wrangling tasks, as there are now better options.
 
-This guide uses `dplyr` for manipulation of data sets (adding and updating variables) and other packages from the `tidyverse` for all the mapping tasks.  The `tidyverse` suite of packages are becoming increasingly popular as they share an intuitive syntax and make code easier to write and read.  If you are working with very large datasets, however, the `data.table` package may be more suitable as it has been designed for fast execution and to minimise demands on available memory (RAM).  A relatively new package, `dtplyr` has been created for those who want to take advantage of the greater speed and efficacy of `data.table` but prefer to use `dplyr` syntax.
+This guide uses `dplyr` for manipulation of data sets (adding and updating variables) and other packages from the `tidyverse` for all the mapping tasks.  The `tidyverse` suite of packages are becoming increasingly popular as they share an intuitive syntax and make code easier to write and read.  If you are working with very large data sets, however, the `data.table` package may be more suitable as it has been designed for fast execution and to minimise demands on available memory (RAM).  A relatively new package, `dtplyr` has been created for those who want to take advantage of the greater speed and efficacy of `data.table` but prefer to use `dplyr` syntax.
 
 There are many different options for performing tasks such as geocoding and cartography in R.  In the examples below, packages have been selected on the basis that:
 
@@ -119,7 +115,6 @@ Some other basic patient data has also been provided, which you may find useful 
 You can use this section to install and load the packages that you will need for this session.  Some brief details on why each package was selected are provided below:
 
    + `here` - setting of working directory containing materials for this practical
-   + `data.table` - fast data import, cleaning and data wrangling
    + `tidyverse` - collection of packages based on tidy data format and dplyr syntax
    + `tidygeocoder` - geocoding (converting UK postcodes to longitude and latitude)
    + `sf` - converts meta data and coordinates to a "simple feature" object for maps 
@@ -142,7 +137,6 @@ Once any missing packages have been installed, the third element will load all t
 
 # Create a list of CRAN packages you will need for this session:
 pkglist <- c("here", 
-             "data.table",
              "tidyverse",
              "tidygeocoder",
              "sf", 
@@ -242,21 +236,21 @@ We can correct this by using a regular expression to add the spaces back in.  Th
 ###############################################################################
 
 # Function to ensure space between incode and outcode in postcodes:
-add_space <- function(postcodes){
+add_space <- function(postcodevar){
   
   # If a space is present between incode and outcode, return as is:
-  if(grepl(pattern = "?(\\s)", x = postcodes) == TRUE){
+  if(grepl(pattern = "?(\\s)", x = postcodevar) == TRUE){
     
-    npc = postcodes
+    pcwithspace = postcodevar
   
     } else {
     # If a space is missing between incode and outcode, add one:
-    npc = stringr::str_replace(string = postcodes, 
+    pcwithspace = stringr::str_replace(string = postcodevar, 
                                pattern = "(?=.{3}$)",
                                replacement = " ")
     }
   # Return the postcodes with space added:
-  return(npc)
+  return(pcwithspace)
 }
 
 ###############################################################################
@@ -281,7 +275,7 @@ We can now geocode the cleaned postcodes.
 
 For this practical exercise, we will be using the publicly available package [tidygeocoder](https://jessecambon.github.io/tidygeocoder/) from CRAN, which is tidyverse compatible and performs batch look-ups of addresses and postcodes (geocoding) or geographic coordinates (reverse geocoding).  Matching values are returned as new columns, which you can add directly to your data.frame, tibble or data.table.  
 
-The package interfaces with multiple data providers, each of which have their own terms and conditions for performing geocoding batch queries.  We will use the OpenStreetMap (OSM) service Nominatum, which is a free service that will work with addresses or postcodes from any country.  Results are returned at a rate of 1 query per second.
+The package interfaces with [multiple data providers](https://jessecambon.github.io/tidygeocoder/articles/geocoder_services.html), each of which have their own terms and conditions for performing geocoding batch queries.  We will use the OpenStreetMap (OSM) service Nominatum, which is a free service that will work with addresses or postcodes from any country.  Results are returned at a rate of 1 query per second.
 
 Note that OSM may block users who perform the same queries multiple times (see their terms of use [here](https://operations.osmfoundation.org/policies/nominatim/)).  If you encounter any difficulties during this practical session, please skip this step and use the pre-geocoded dataset `CaseStudy_RDM_anon_data_coords.csv` instead.
 
@@ -308,7 +302,7 @@ For creating static maps, we will also need to download the coordinates that wil
 
 ## Creating static background maps:
 
-To create a static map of cases, we will first import data to create a background map of the UK using the `osmdata` package.  You can define the boundary box for the map you want to import simply by typing the country name (or region and country name if you want to focus on one region).  
+To create a static map of cases, we will first import data to create a background map of the UK using the `osmdata` package.  You can define the boundary box for the map you want to import simply by typing the country name (or region and country name if you want to focus on one region).  A list of country names and their corresponding codes is provided on the [OpenStreetMap Nominatim country code wiki page](https://wiki.openstreetmap.org/wiki/Nominatim/Country_Codes).  Note that OSM is fairly flexible with country names and will usually accept commonly used abbreviations as well as the official name or code.
 
 
 We will then use this boundary box to fetch a nice background map from OpenStreetMap with the `ggmap` package.  Note that it used to be possible to bulk geocode and define boundary boxes with Google maps as well, but this is now exclusively a paid service.  If your organisation does pay for this service, you can use it by providing an API key as one of the arguments.  For this exercise, we will only use OpenStreetMap as it is a free service.
@@ -319,7 +313,7 @@ This map will be used as the base layer.
 ```{r boundary box UK, message=FALSE, warning=FALSE}
 
 # First, define the boundaries of the map you want to import:
-ukbb <- osmdata::getbb(place_name = "UK", featuretype = "country")
+ukbb <- osmdata::getbb(place_name = "United Kingdom", featuretype = "country")
 
 
 # Next, get the base layer map matching this boundary box: 
@@ -568,7 +562,7 @@ contourmap <- ggplot2::ggplot() +
   geom_density2d(data = rdmdata, 
                  mapping = aes(x = home_long, 
                                y = home_lat, 
-                               alpha = 0.5), # Change alpha for +/- resolution
+                               alpha = 0.5),
                  inherit.aes = FALSE, 
                  contour_var = "count")
 
@@ -711,7 +705,7 @@ rdmleaflet <- leaflet() %>%
   addMarkers(lng = rdmdata$home_long,
              lat = rdmdata$home_lat,
              popup = paste("ID: ", rdmdata$caseid, "<br/>",
-                           "Epilink: ", rdmdata$case.type, "<br/>", 
+                           "Epilink: ", rdmdata$epi.cluster, "<br/>", 
                            "RDM clade: ", rdmdata$rdm.clade), 
              clusterOptions = markerClusterOptions()) 
 
@@ -731,3 +725,37 @@ htmlwidgets::saveWidget(widget = rdmleaflet,
 Further information about this outbreak and other spatial analyses performed is provided in the below publication:
 
 Butcher H, Elson R, Chattaway MA, Featherstone CA, Willis C, Jorgensen F, Dallman T, Jenkins C, McLauchlin J, Beck C, & Harrison S (2016). Whole genome sequencing improved case ascertainment in an outbreak of Shiga toxin-producing Escherichia coli O157 associated with raw drinking milk. Epidemiology and Infection, 144(13), 2812-2823. [https://doi.org/10.1017/S0950268816000509](https://doi.org/10.1017/S0950268816000509)
+
+
+# Appendix
+
+Following feedback on this exercise from outbreak module participants in December 2021, additional details have been provided below on two more complex techniques that are included in the code.
+
+
+## A. Creating regular expressions
+
+At the beginning of this exercise, postcodes were re-formatted to include a space between the outcode and incode with a function called `add_space`.  This function used regular expressions, or "regex" to determine if a space was already present in the code or not, and where missing, add the space as the fourth-last character in the text string.  
+
+While this has nothing specifically to do with mapping, it is quite useful to understand and be able to construct regular expressions as they are language agnostic (the same expressions can be used in STATA, python, SQL etc.) and can be used for many data cleaning tasks (wherever patterns within text strings need to be identified, extracted or replaced). 
+
+Although this topic is too extensive to cover in this appendix, the following resources are a useful starting point:
+
+  1. [Regular expressions every R programmer should know](https://www.jumpingrivers.com/blog/regular-expressions-every-r-programmer-should-know/) - this blog post introduces users to some basics.
+  2. [A complete beginner's guide to regular expressions in R](https://regenerativetoday.com/a-complete-beginners-guide-to-regular-expressions-in-r/) - this is a tutorial on how to construct regular expressions, with some worked examples
+  3. [R help page on regular expressions](https://stat.ethz.ch/R-manual/R-devel/library/base/html/regex.html) - although most regular expressions are language agnostic, a few shortcuts for certain commonly used expressions (for example searching for a string that contains only letters) have been adapted specifically for R.  This R help page details these shortcuts and a few other essentials. 
+
+
+## B. Calculating density in contour and heatmaps
+
+The function that actually calculates density is buried within other functions called by `ggplot2`, which ultimately determine the colour intensities on a heatmap, or the distance between contour lines for a contour map.  Below is a short primer explaining the basics.  Some suggested reading is also included at the end.
+
+Contour maps and heat maps are ways of visualising the density of a population (or cases).  **Population density is the number of people per unit area**.  To visualise this on a map, we need to divide the map into squares representing our unit area.  For example, if we want to know the density of the population per square meter, we would divide up the map into squares, each one representing one square meter.  If there are two points (cases) in one square, this square has a density of 2, and so on.  If we changed the unit area to 0.5 meters squared, fewer points might fall within that area, so in this example our density might be reduced from 2 to 1 single case.  Equally, if we increase the unit area to e.g. 10 meters squared, one "square" might now include a lot more cases, e.g. 50. Changing the unit area (or other factors that influence density) in a contour or heatmap has a similar effect to changing the bins in a choropleth map.  
+
+Choosing an appropriate unit for the area to calculate density is important as it will change how the map looks.  In the code we used in this practical, the argument `alpha` within `stat_density2d` to produce the heatmap is assigned to "level".  This is a bit obscure, but "level" is the name of a new variable that R creates in the data set while preparing the plot, and R fills this new variable with a density estimate.  
+
+The default density estimate value is calculated by `ggplot2` in the background, using the `kde2d` function (kernel density estimation in 2 dimensions) from the `MASS` package.  This function in turn uses a "normal reference distribution", also known as "Silverman's rule of thumb" to calculate the bandwidths.  Selecting the appropriate method to calculate bandwidths for density estimates is a complex topic.  
+
+Some resources on bandwidth calculation have been provided below:
+
+  1. [The importance of kernel density estimation bandwdith](https://aakinshin.net/posts/kde-bw/) - this very readable blog post explains the history behind different methods for calculating bandwidths and sign-posts the relevant functions in R, Python, Matlab and Wolfram Mathematica.
+  2. [Contours of a 2D density estimate](https://ggplot2.tidyverse.org/reference/geom_density_2d.html) - this vignette shows how density estimates are calculated when making graphics with `ggplot2`.

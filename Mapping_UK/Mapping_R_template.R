@@ -10,18 +10,13 @@
 
 # Create a list of CRAN packages you will need for this session:
 pkglist <- c("here", 
-             "data.table",
-             "dtplyr",
              "tidyverse",
              "tidygeocoder",
-             "ggplot2", 
              "sf", 
              "osmdata",
              "ggmap",
              "scales",
-             "tmap",
              "leaflet",
-             "leaflet.extras2",
              "htmlwidgets")
 
 # Check if packages are already installed, if not install them:
@@ -59,21 +54,24 @@ phecpop <- readr::read_csv(file = "data/PHEC_population.csv")
 #######
 
 # Function to ensure space between incode and outcode in postcodes:
-add_space <- function(postcodes){
+add_space <- function(postcodevar){
+  
+  # This function requires a vector of postcodes as input.
+  # It will return the vector of postcodes with spaces added, if missing.
   
   # If a space is present between incode and outcode, return as is:
-  if(grepl(pattern = "?(\\s)", x = postcodes) == TRUE){
+  if(grepl(pattern = "?(\\s)", x = postcodevar) == TRUE){
     
-    npc = postcodes
+    pcwithspace = postcodevar
     
   } else {
     # If a space is missing between incode and outcode, add one:
-    npc = stringr::str_replace(string = postcodes, 
-                               pattern = "(?=.{3}$)",
-                               replacement = " ")
+    pcwithspace = stringr::str_replace(string = postcodevar, 
+                                       pattern = "(?=.{3}$)",
+                                       replacement = " ")
   }
   # Return the postcodes with space added:
-  return(npc)
+  return(pcwithspace)
 }
 
 #######
@@ -286,9 +284,9 @@ contourmap <- ggplot2::ggplot() +
   geom_density2d(data = rdmdata, 
                  mapping = aes(x = home_long, 
                                y = home_lat, 
-                               alpha = 0.5), # Change alpha for +/- resolution
+                               alpha = 0.5),
                  inherit.aes = FALSE, 
-                 contour_var = "count")
+                 contour_var = "density")
 
 # View the contour map:
 contourmap
@@ -318,7 +316,7 @@ heatmap <- ggplot2::ggplot() +
                                fill = ..level.., 
                                alpha = ..level..), 
                  size = 0.01,  
-                 bins = 50, # Changing the bins will change how the map looks
+                 bins = 50,
                  geom = "polygon", 
                  inherit.aes = FALSE) + 
   scale_fill_gradient(low = "blue", 
@@ -375,7 +373,7 @@ cimap <- ggplot2::ggplot(phecll) +
           size = 0.5) +
   coord_sf() + 
   scale_fill_distiller(palette = "Blues", 
-                       breaks = scales::pretty_breaks(n = 8), 
+                       breaks = scales::pretty_breaks(n = 15), 
                        direction = 1) +
   guides(fill = guide_legend(title = "Crude incidence per 100 000", 
                              reverse = FALSE)) + 
@@ -403,7 +401,7 @@ rdmleaflet <- leaflet() %>%
   addMarkers(lng = rdmdata$home_long,
              lat = rdmdata$home_lat,
              popup = paste("ID: ", rdmdata$caseid, "<br/>",
-                           "Epilink: ", rdmdata$case.type, "<br/>", 
+                           "Epilink: ", rdmdata$epi.cluster, "<br/>", 
                            "RDM clade: ", rdmdata$rdm.clade), 
              clusterOptions = markerClusterOptions()) 
 
