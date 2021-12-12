@@ -695,7 +695,7 @@ When distributing leaflet maps for public consumption, users are strongly advise
 
 
 
-```{r interactive leaflet map, message=FALSE, warning=FALSE}
+```{r interactive leaflet map, eval=FALSE, message=FALSE, warning=FALSE}
 
 # Create the interactive map:
 rdmleaflet <- leaflet() %>% 
