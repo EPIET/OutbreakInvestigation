@@ -1,5 +1,5 @@
 ---
-title: "Outbreak investigation module: mapping exercise"
+title: "Mapping in R: STEC raw milk tutorial"
 author: "Adapted from material by Daniel Gardiner and Amy Mikhail"
 date: "10 December 2021"
 output:
@@ -63,7 +63,7 @@ Substantial changes have been made to this version to bring it up to date.  In p
 
 # How to use this resource
 
-This R markdown file demonstrates the code you will need to answer the questions posed in the practical guide for this case study.  
+This R markdown file demonstrates the code you will need to answer the questions posed in this case study.  
 
 The answers are not provided, but there should be sufficient information in the examples below to investigate the geospatial epidemiology of this outbreak, even if you are relatively new to R.  You will however need a basic understanding of R syntax, as it is outside the scope of this practical to explain it fully.
 
@@ -71,7 +71,9 @@ For each processing step, **one example** has been provided; while working throu
 
 There are several different "data wrangling" packages in R (the main three approaches being base R, `data.table` and `dplyr`).  Base R syntax can be very long-winded and few people use it any more for data wrangling tasks, as there are now better options.
 
-This guide uses `dplyr` for manipulation of data sets (adding and updating variables) and other packages from the `tidyverse` for all the mapping tasks.  The `tidyverse` suite of packages are becoming increasingly popular as they share an intuitive syntax and make code easier to write and read.  If you are working with very large data sets, however, the `data.table` package may be more suitable as it has been designed for fast execution and to minimise demands on available memory (RAM).  A relatively new package, `dtplyr` has been created for those who want to take advantage of the greater speed and efficacy of `data.table` but prefer to use `dplyr` syntax.
+This guide uses `dplyr` for manipulation of data sets (adding and updating variables) and other packages from the `tidyverse` for all the mapping tasks.  The `tidyverse` suite of packages are becoming increasingly popular as they share an intuitive syntax and make code easier to write and read.  
+
+If you are working with very large data sets, however, the `data.table` package may be more suitable as it has been designed for fast execution and to minimise demands on available memory (RAM).  A relatively new package, `dtplyr` has been created for those who want to take advantage of the greater speed and efficacy of `data.table` but prefer to use `dplyr` syntax.
 
 There are many different options for performing tasks such as geocoding and cartography in R.  In the examples below, packages have been selected on the basis that:
 
@@ -84,37 +86,27 @@ Finally, note that wherever a package that is not part of base R has been used, 
 Happy mapping!
 
 
-# Introduction
-
-For this exercise, you have been provided with a line list of cases from an outbreak associated with raw drinking milk that was contaminated with shiga toxin-producing *Escherichia coli* (STEC), which occured in 2014.
-
-The primary exposure was at the farm producing the raw milk in the South West of England.  Samples of raw milk from this farm were also positive for the same strain of STEC as cases.
-
-Initially, cases were defined as laboratory confirmed cases of STEC that had visited the implicated farm.  However, whole genome sequencing showed that there were a number of additional cases within the same STEC cluster that had no known history of visiting the farm.  A number of cases within this cluster were also detected up to 5 years prior to this outbreak.
-
-The outbreak control team has therefore asked you to do some geospatial analysis and particularly wants to know:
-
-   1. Are pre-outbreak cases also clustered near the farm in the South West?
-   2. Are all cases from the outbreak year (2014) clustered near the farm in the South West?
-   3. If not, does their spatial distribution pattern indicate an alternative source for this strain of STEC?
-
-To help with further investigations, 2014 cases that had not previously been associated with the implicated farm were re-interviewed to determine if they had any less direct links.  Some of these cases had bought raw milk from a mobile van that was distributing raw milk from the farm to multiple locations across South England.
 
 
-For this geospatial analysis, you have been provided with a raw data set containing three sets of postcodes:
+# Preparation and package installs
 
-  1. Patient residence postcodes (where the patients live)
-  2. Postcodes of locations visited in the UK in the week before symptom onset 
-  3. Exposure postcodes (where the patients were most likely exposed to the raw milk)
+To work through this tutorial, you will need:
 
-Some other basic patient data has also been provided, which you may find useful to stratify the maps and gain some insights into the spatial epidemiology of this outbreak.
+   + a recent version of R (>= 4.1.x) and Rstudio (>= 2022.x)
+   + required packages installed (see below)
+   + internet connection (required for geocoding and downloading static maps)
+   + this guide (provided in the course materials folder, also [accessible online](https://github.com/EPIET/OutbreakInvestigation/blob/master/Mapping_UK/guide/Mapping_R_guide.md))
+   + the data sets (provided in the course materials folder)
 
 
-# Required packages
+## Installing required packages
 
-You can use this section to install and load the packages that you will need for this session.  Some brief details on why each package was selected are provided below:
+This section describes how to install and load the packages that you will need for this mapping tutorial.  Some brief details on why each package was selected are provided below:
 
-   + `here` - setting of working directory containing materials for this practical
+   + `pacman` - Checks for, installs (if needed) and loads multiple packages at once
+   + `rio` - import multiple different data types with a single command
+   + `here` - import and export data using relative file paths
+   + `janitor` - handy functions for data cleaning
    + `tidyverse` - collection of packages based on tidy data format and dplyr syntax
    + `tidygeocoder` - geocoding (converting UK postcodes to longitude and latitude)
    + `sf` - converts meta data and coordinates to a "simple feature" object for maps 
@@ -124,147 +116,195 @@ You can use this section to install and load the packages that you will need for
    + `leaflet` - java package for making interactive maps with more complex features
    + `htmlwidgets` - allows saving of leaflet maps as html files
    
-The first element in the code below compiles all the required packages into a list.  
+To ensure that the package installation goes smoothly, you have been provided with a separate package installation script.  
 
-The second element will check if you already have these packages in your R library and install them if not (note - you will need an internet connection and to have selected your preferred CRAN mirror prior to running this line).  
+  1. Prior to running this script, you should close any open instances of R and RStudio
+  2. Open a fresh instance of RStudio
+  3. Within RStudio, browse for and open the package installation script
+  4. Restart R by going to `Session` and then `Restart R` in the top toolbar of the RStudio menu as shown in the image below.
+  5. Run the code in the script as instructed, to install the packages.
+  6. If prompted to update or install additional packages, select the `From CRAN` option.
+  7. If you encounter any issues, please contact the organizers for help.
 
-Once any missing packages have been installed, the third element will load all the required packages from your R library.  If you have any problems with package installation or loading, please ask the facilitators for help before proceeding.
 
-```{r packages, message=FALSE, warning=FALSE}
+![Restarting R from RStudio](images/Restart_r.png)
+
+
+After starting a fresh RStudio and R session, you will first need to install the `pacman` package.  This package has a function which makes installing and loading other packages much easier.  The code below will first check to see if `pacman`is already installed in your R library, and if not, install it:  
+
+```{r package_installs, message=FALSE, warning=FALSE}
 
 ##################################################################
 # INSTALL PACKAGES
 
-# Create a list of CRAN packages you will need for this session:
-pkglist <- c("here", 
-             "tidyverse",
-             "tidygeocoder",
-             "sf", 
-             "osmdata",
-             "ggmap",
-             "scales",
-             "leaflet",
-             "htmlwidgets")
+# Check if the 'pacman' package is installed, if not install it:
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
 
-# Check if packages are already installed, if not install them:
-invisible(lapply(pkglist, function(x) 
-  if (!requireNamespace(x, quietly = TRUE)) install.packages(x)))
 
+```
+
+Next, you can use the `pacman::p_load()` function to check if the rest of the packages required for this tutorial are already installed in your R library.  Any missing packages will be automatically installed with this function.  
+
+```{r package_loading, message=FALSE, warning=FALSE}
 
 ##################################################################
-# LOAD PACKAGES:
+# LOAD LIBRARIES
 
-# Loop through the CRAN packages in the list with lapply and load them:
-invisible(lapply(pkglist, library, character.only = TRUE))
-
-```
-
-
-# Setting your working directory
-
-In this practical we will use the `here` package to identify the working directory. Ideally, open the .Rproj file in the "Mapping" folder that contains all the material for this practical and create or modify R scripts from within this R project file.  A `.here` place-holder has already been added to the "Mapping" folder for convenience; this will automatically set the working directory to the directory in which the `.here` file is located, irrespective of where you saved the "Mapping" folder on your computer.  
-
-When reading in files in any sub-folders, you can use the `here` package to define the relative path (the root directory is wherever the `.here` file is located).
-
-```{r set working directory, results=FALSE, message=FALSE, warning=FALSE}
-
-# Check the location of your current working directory:
-getwd()
-
-# Define path to working directory with here() and set it: 
-setwd(here::here())
+# Load the required libraries into the current R session:
+pacman::p_load(rio,
+               here,
+               janitor,
+               tidyverse,
+               tidygeocoder,
+               sf,
+               osmdata,
+               ggmap,
+               scales,
+               leaflet,
+               htmlwidgets, 
+               install = TRUE, 
+               update = TRUE)
 
 ```
 
+Note that each time you restart R or RStudio, you will need to rerun the `pacman::p_load()` function to load the required libraries into your current session.  We therefore suggest you copy this code and paste it at the top of the R script that you will use for this exercise. 
 
-# Reading in the data
+The argument `update = TRUE` will automatically install the most recent versions of the listed packages if those versions are higher than the ones in your R library.  Once you have installed the packages for this course, we suggest setting this option to `FALSE` in your R script.
 
-In this section you can read in (import) the raw data sets.  You can find the data sets in a sub-folder called `data` which should be in the Mapping folder provided to you for this exercise.
+If you have any problems with package installation or loading, please contact the facilitators for help before proceeding.
 
-**Note there are three raw data sets:**
 
-   + CaseStudy_RDM_anon_data.csv - this contains the raw anonymised data set
-   + CaseStudy_RDM_anon_data_coords.csv - this contains the same dataset but already populated with geocoordinates
-   + PHEC_population.csv - this contains population data for health regions in England
+## File organization and housekeeping
 
-The code below shows you how to read in the raw case and population data with:
+In this tutorial, files are imported and outputs exported using relative file paths with the help of the `here` package. 
 
-   + `readr::read_csv()` from the tidyverse package `readr`  
+  1. For this to work seamlessly, we suggest that you download the folder containing all the course materials and save it on your desktop. 
+  2. Next, open the folder and double-click on the the 'Mapping_UK.Rproj' file, which will open a new instance of RStudio.  
+  3. If you click on the 'files' pane in RStudio, you should now be able to see all the sub-folders containing the course materials. 
+  4. Go to the `File` menu in RStudio and select `New file --> R script`.
+  5. Name the R script (e.g. `My_GIS_code.R`) and save it in the same folder.
+  6. Add the `pacman::p_load()` function including the required packages as shown in the code chunk above to the top of your script, changing the `update` argument to `FALSE`.
+  7. Run this code to load the required libraries into your current R session.
 
-You can also use:
+You are now ready to begin.
 
-   + `data.table::fread()` command from the `data.table` package
-   + `read.csv()` from base R
 
-All of these options will import the raw data *from a comma separated values file* into R as a `data.frame`.   
 
-**Notes on importing data:**
+# Introduction to the tutorial
 
-   1. You do not need to read in the data with coordinates unless you have difficulties with the geocoding step (next).
-   2. If you use a comma `,` as the decimal separator in your country and you are using dplyr code, choose `readr::read_csv2()` instead of `readr::read_csv()`.  csv2 assumes that a period `.` is being used as the decimal separator and will therefore assume that columns in a .csv file are separated by a semi-colon `;`.
-   3. If your data is in a Microsoft Excel file, you can either save as a .csv before starting your analysis, or use other r packages like `readxls` or `openxlsx`, respectively, to import your data.
 
-We will read in the data using the `readr` package, which is part of the tidyverse and automatically imports the data as a tibble.  The advantage of tibbles is that if the variables in your data have descriptive labels, tibbles will keep the descriptive labels as well as the variable names.  Other tabular formats will not do this.
+## Background
+
+For this exercise, you have been provided with a line list of cases from an outbreak associated with raw drinking milk that was contaminated with shiga toxin-producing *Escherichia coli* (STEC), which occurred in 2014.
+
+Initially, the outbreak was identified after 9 people who had visited a farm producing raw milk in the South West of England in September and October 2014 fell ill.  The farm routinely produced and sold raw milk at local markets, but was also open to visitors in the spring and summer time.  Visitors were exposed either through interacting with the animals and their environment or from drinking a sample of the raw milk.  Samples of raw milk from this farm were also tested and positive for the same strain of STEC as cases.
+
+Sequencing the isolates from the 9 cases revealed that they fell into the same 5-single nucleotide polymorphism (SNP) cluster (i.e. were very closely related genetically).  Isolates from the raw drinking milk also fell into this cluster. 
+
+Surprisingly, the whole genome sequencing cluster also included isolates from 36 other cases that were not known to have visited the implicated farm during the outbreak period.  Twelve of these cases were new (identified late 2014 or early 2015) and had not yet been associated with any outbreak.  The remaining additional cases were historic (identified between 2009 and 2012) and had been associated with other outbreaks linked to two farms and two schools which were also located in the South West of England.  The OCT decided to include the other cases associated with the historic outbreaks in the line list too.  
+
+Information on the exposures of both historic and new cases was available, because the National STEC enhanced surveillance system had been implemented in 2009.  The routine enhanced surveillance questionnaire for STEC specifically asks about exposure to raw milk, farm visits and any overnight stays outside the normal place of residence in the 14 days before symptom onset. Where possible, the full addresses (including UK postcode) of any locations visited during the incubation period are recorded on the questionnaire.  
+
+Routine whole genome sequencing for STEC was piloted from January 2014, with retrospective sequencing of randomly selected samples from all outbreaks investigated in the previous 5 years.   The outbreak control team is interested to know whether the other cases with isolates in the same 5-SNP WGS cluster may also have been exposed to raw milk or farm animals from the same region in England; to determine this they have asked you to undertake some geospatial analysis.
+
+To conduct your analysis, the OCT has provided you with a case line list that includes information on whole genome sequencing clustering, association with investigated outbreaks, geospatial exposures, and exposure to raw animal products.  
+
+The following variables will be critical for your analysis:
+
+   + `wgs_rdm_cluster`: Indicates if case isolates are part of the WGS cluster associated with this raw drinking milk (RDM) outbreak (`TRUE` if yes, `FALSE` if they are from a different WGS cluster)
+   + `epi_outbreak`: Indicates which outbreak investigation each case is linked to. Options are this outbreak (RDM 2014), Farm A, Farm B, School A, School B, or sporadic (not linked to an outbreak).
+   + `postcode_home`: UK postcode of residence
+   + `postcode_uk_travel`: UK postcode of other overnight stays in the 14 days before onset
+   + `postcode_exposure`: UK postcode where exposure to raw milk most likely occurred.
+
+Note that `postcode_uk_travel` only includes places other than the case's normal residence where they spent at least one night, while `postcode_exposure` is the postcode of the location where the OCT thinks exposure for that case most likely occurred; this also includes day visits to farms, or the case's own residence if they live close to the implicated farm.
+
+Note that the `postcode_exposure` for all 9 cases in the `RDM 2014` is the postcode of the farm in the South West of England that had been identified as the source of infection for this outbreak.
+
+
+
+## Data sets
+
+For this tutorial, the following data sets have been provided:
+
+  1. `CaseStudy_RDM_anon_data.csv` - raw data set
+  2. `CaseStudy_RDM_anon_data_cleanpcodes.csv` - raw data with pre-cleaned postcodes
+  3. `CaseStudy_RDM_anon_data_coords.csv` - raw data with geographic coordinates added
+  4. `PHEC_population.csv` - regional population data for choropleth incidence maps
+
+We suggest that you start working with the secomd data set, that has pre-cleaned postcodes as the function required to clean the postcodes is a little complex, and this will be described later in the tutorial. 
+
+The third data set has been provided as a back-up in case you have difficulties geocoding the three postcode variables.  Geocoding can sometimes be very slow or not work if there is too much traffic to the server at the same time.
+
+
+## Questions to answer
+
+As explained in the introduction, the OCT were surprised to learn that some additional cases, both historic and new, were also linked to this outbreak via whole genome sequencing.  By mapping the cases in different ways and looking at their geo-spatial distribution, what conclusions can you draw about the following questions?
+
+  1. Does the geo-spatial distribution of cases confirm or refute the hypothesis that the source of infection for all cases in the WGS cluster is in the South West region?
+  2. Based on their geo-spatial distribution over time, are the historic cases likely to have been exposed to the same source of infection as cases from the current RDM outbreak or a different source?
+  3. Overall, does the geo-spatial evidence best support the cluster defined by whole genome sequencing (`wgs_rdm_cluster`) or by epidemiological links (`epi_outbreak`)?
+  
+
+# Geospatial investigations in R
+
+In this section, the example code below shows how to iteratively build different types of maps that will be helpful for your investigation.  To complete your exploration of the data and answer the questions, you will need to apply this code to the three different postcode locations, stratifying by WGS cluster, epi outbreak, or other variables that seem useful to you.
+
+
+## Reading in the data
+
+In this section you can read in (import) the raw data sets into R.  You can find the data sets in a sub-folder called `data` which should be in the folder of course materials provided to you for this exercise.
+
+We suggest you use the package `rio` to import the data as this package simplifies data imports by being able to import multiple different types of data (.csv, .xls, .xlsx, .rds) with a single command: `rio::import()`.
+
+This code also uses the `here` package as it provides some simple syntax for building relative file paths, that will work on any computer when you share your code provided everyone starts from a .Rproj file in the root of the course materials folder:
+
 
 ```{r import data, warning=FALSE}
 
-# Read in raw data (not geocoded - if you want to try geocoding yourself):
-rdmdata <- readr::read_csv(file = "data/CaseStudy_RDM_anon_data.csv")
+##################################################################
+# IMPORT RAW DATA:
 
+# Use this data set for the first part of this case study:
+rdmdata <- rio::import(file = here("data", "CaseStudy_RDM_anon_data_cleanpcodes.csv"))
+
+# Use this data set if you want to try cleaning postcodes and geocoding yourself:
+# rdmdata <- rio::import(file = here("data", "CaseStudy_RDM_anon_data.csv"))
+
+# Use this data set if you have trouble geocoding:
+# rdmdata <- rio::import(file = here("data", "CaseStudy_RDM_anon_data_coords.csv"))
+
+##################################################################
+# Clean variable names:
+
+rdmdata <- rdmdata %>% 
+  janitor::clean_names()
+
+
+##################################################################
 # Read in population data for health regions (called PHE centres):
-phecpop <- readr::read_csv(file = "data/PHEC_population.csv")
+phecpop <- rio::import(file = here("data", "PHEC_population.csv"))
+
+# Clean variable names:
+phecpop <- phecpop %>% 
+  janitor::clean_names()
 
 ```
 
 
-# Geocoding the data
+## Geocoding the data
 
 **Geocoding** (the process of converting addresses to geographic coordinates) is done by using an address-to-coordinates lookup table, which is typically accessed from either a public database or a local mirror.  It can be challenging to geocode using the public databases as in order to ensure fair use, these often have a cap on the number of postcodes you can geocode at one time.  Conversely, geocoding from a local mirror database created by your institution requires permission to access that database from your organisation and can generally only be accessed via your organisational account.  
 
-
-## Postcode cleaning:
-
-Because the `tidygeocoder` package is not UK-specific, it will not recognise UK postcodes unless they are in the correct format and the country name is also supplied.
-
-A quick preview of the postcode data with `head(rdmdata$postcode_home)` for example, shows you that the space that normally separates the in-code and out-code part of UK postcodes is missing for postcodes with 7 characters.  
-
-We can correct this by using a regular expression to add the spaces back in.  The function below first checks if there is already a space in the postcode; if there is, it returns it as-is.  If the space is missing, it counts back 3 characters from the end of the postcode (right side) and adds a space before the third-last character.  Note that this function is not vectorised, so we need to loop over individual rows (postcodes) to apply it to the data.
+In this tutorial, we will use the package `tidygeocoder`, which can derive geographic coordinates (longitude and latitude) given a full address from any country.  As UK postcodes are sufficiently specific to provide a longitude and latitude for a given address, we can geocode these with `tidygeocoder` provided that we also provide the country name.  In preparation for this step, we will add a column to the dataset called `country`: 
 
 
-```{r clean postcodes, message=FALSE, warning=FALSE}
 
-###############################################################################
+```{r add_country, message=FALSE, warning=FALSE}
 
-# Function to ensure space between incode and outcode in postcodes:
-add_space <- function(postcodevar){
-  
-  # If a space is present between incode and outcode, return as is:
-  if(grepl(pattern = "?(\\s)", x = postcodevar) == TRUE){
-    
-    pcwithspace = postcodevar
-  
-    } else {
-    # If a space is missing between incode and outcode, add one:
-    pcwithspace = stringr::str_replace(string = postcodevar, 
-                               pattern = "(?=.{3}$)",
-                               replacement = " ")
-    }
-  # Return the postcodes with space added:
-  return(pcwithspace)
-}
-
-###############################################################################
-
-# Use the add_space function to correct postcode format:
-rdmdata <- rdmdata %>% 
-  rowwise() %>% 
-  mutate(postcode_home = add_space(postcode_home))
-
-# Now we need to add a new column to the case data indicating the country:
+# Add a new column to the case data indicating the country:
 rdmdata <- rdmdata %>% 
   mutate(country = "UK")
-
-
 
 ```
 
@@ -287,10 +327,28 @@ rdmdata <- rdmdata %>%
                         country = country, 
                         method = "osm", 
                         lat = "home_lat", 
-                        long = "home_long")
-
+                        long = "home_long") %>% 
+  tidygeocoder::geocode(postalcode = postcode_uk_travel, 
+                        country = country, 
+                        method = "osm", 
+                        lat = "travel_lat", 
+                        long = "travel_long") %>% 
+  tidygeocoder::geocode(postalcode = postcode_exposure, 
+                        country = country, 
+                        method = "osm", 
+                        lat = "exposure_lat", 
+                        long = "exposure_long")
 
 ```
+
+
+You now have new variables containing latitude and longitude for the three postcode variables as follows:
+
+  + `postcode_home` --> `home_lat` and `home_long`
+  + `postcode_uk_travel` --> `travel_lat` and `travel_long`
+  + `postcode_exposure` --> `exposure_lat` and `exposure_long`
+
+These variables will be used for mapping the cases.
 
 
 # Mapping cases
@@ -410,23 +468,22 @@ ggplot2::ggsave(filename = "Map of cases - static.pdf",
 
 ## Stratifying static maps by other variables:
 
-It might be useful to see how cases are distributed when they are stratified by a grouping variable.  Cases were originally defined in terms of time, place and STEC subtype.  However later, whole genome sequencing results became available.  This showed that not all case isolates fell into the the same whole genome sequencing cluster as the strain of STEC that had been found in the raw milk (hereafter referred to as the RDM clade). The variable that we will use for this stratification is called `rdm.clade`.
+It might be useful to see how cases are distributed when they are stratified by a grouping variable.  Cases were originally defined in terms of time, place and STEC subtype.  However later, whole genome sequencing results became available.  This showed that not all case isolates fell into the the same whole genome sequencing cluster as the strain of STEC that had been found in the raw milk (hereafter referred to as the RDM clade). The variable that we will use for this stratification is called `wgs_rdm_cluster`.
 
 ```{r point map with stratification, message=FALSE, warning=FALSE}
 
 # Update the RDM clade variable (give it pretty labels):
 rdmdata <- rdmdata %>% 
-  mutate(rdm.clade = recode(.x = rdm.clade, 
-                            `0` = "B. Other cluster", 
-                            `1` = "A. RDM cluster"))
-
+  mutate(wgs_rdm_cluster = case_when(wgs_rdm_cluster == FALSE ~ "B. Other cluster", 
+                                     wgs_rdm_cluster == TRUE ~ "A. RDM cluster")) 
+          
 
 # Create the stratified map:
 stratamap <- ggmap::ggmap(coordinatesmap, 
                          extent = 'panel', 
                          maprange = FALSE) +
   geom_point(data = rdmdata, 
-             aes(x = home_long, y = home_lat, fill = rdm.clade), 
+             aes(x = home_long, y = home_lat, fill = wgs_rdm_cluster), 
              colour = "#238443",
              alpha = 0.5,
              size = 4, 
@@ -478,7 +535,7 @@ phecmap <- ggplot2::ggplot() +
           size = 0.75) +
   coord_sf() + 
   geom_point(data = rdmdata, 
-             aes(x = home_long, y = home_lat, fill = rdm.clade), 
+             aes(x = home_long, y = home_lat, fill = wgs_rdm_cluster), 
              colour = "#238443",
              alpha = 0.5,
              size = 4, 
@@ -620,7 +677,7 @@ ggplot2::ggsave(filename = "Map of cases - heatmap with shading.pdf",
 
 In this section we will create a choropleth map of crude incidence per 100 000 population by PHE Centre.  To do this, you will need to prepare the following:
 
-  1. Summary table of case counts by PHE Centre (variable is called `PHECNM`)
+  1. Summary table of case counts by PHE Centre (variable is called `phecnm`)
   2. Add the population for each PHE Centre to this table from the data set `phecpop`
   3. Calculate incidence per 100 000 population and add this to the table
   3. Merge this table with the sf object containing the polygon coordinates `phecll`
@@ -631,12 +688,12 @@ We will then use the `ggplot2` package to create the choropleth map.
 
 # Create the table of summary counts of cases by PHE Centre:
 incidencetab <- rdmdata %>% 
-  group_by(PHECNM) %>% 
+  group_by(phecnm) %>% 
   summarise(cases = length(caseid))
 
 # # Add population data to the table:
 incidencetab <- phecpop %>% 
-  left_join(incidencetab, by = "PHECNM")
+  left_join(incidencetab, by = "phecnm")
 
 
 # Change NA counts to 0 for incidence calculation:
@@ -645,12 +702,12 @@ incidencetab <- incidencetab %>%
 
 # Calculate crude incidence per 100,000 population:
 incidencetab <- incidencetab %>% 
-  mutate(Incidence = round((cases/Population)*100000, 2))
+  mutate(Incidence = round((cases/population)*100000, 2))
 
 
 # Merge incidence and case counts with sf object:
 phecll <- phecll %>% 
-  left_join(incidencetab, by = "PHECNM")
+  left_join(incidencetab, by = c("PHECNM" = "phecnm"))
 
 ```
 
@@ -706,7 +763,7 @@ rdmleaflet <- leaflet() %>%
              lat = rdmdata$home_lat,
              popup = paste("ID: ", rdmdata$caseid, "<br/>",
                            "Epilink: ", rdmdata$epi.cluster, "<br/>", 
-                           "RDM clade: ", rdmdata$rdm.clade), 
+                           "RDM clade: ", rdmdata$wgs_rdm_cluster), 
              clusterOptions = markerClusterOptions()) 
 
 # View the map:
@@ -732,9 +789,58 @@ Butcher H, Elson R, Chattaway MA, Featherstone CA, Willis C, Jorgensen F, Dallma
 Following feedback on this exercise from outbreak module participants in December 2021, additional details have been provided below on two more complex techniques that are included in the code.
 
 
-## A. Creating regular expressions
+## A. Cleaning address data with regular expressions
 
-At the beginning of this exercise, postcodes were re-formatted to include a space between the outcode and incode with a function called `add_space`.  This function used regular expressions, or "regex" to determine if a space was already present in the code or not, and where missing, add the space as the fourth-last character in the text string.  
+### Postcode cleaning:
+
+Because the `tidygeocoder` package is not UK-specific, it will not recognise UK postcodes unless they are in the correct format and the country name is also supplied.
+
+A quick preview of the postcode data with `head(rdmdata$postcode_home)` for example, shows you that the space that normally separates the in-code and out-code part of UK postcodes is missing for postcodes with 7 characters.  
+
+We can correct this by using a regular expression to add the spaces back in.  The function below first checks if there is already a space in the postcode; if there is, it returns it as-is.  If the space is missing, it counts back 3 characters from the end of the postcode (right side) and adds a space before the third-last character.  Note that this function is not vectorised, so we need to loop over individual rows (postcodes) to apply it to the data.
+
+```{r clean_postcodes, message=FALSE, warning=FALSE}
+
+###############################################################################
+
+# Function to ensure space between incode and outcode in postcodes:
+add_space <- function(postcodevar){
+  
+  # If a space is present between incode and outcode, return as is:
+  if(grepl(pattern = "?(\\s)", x = postcodevar) == TRUE){
+    
+    pcwithspace = postcodevar
+  
+    } else {
+    # If a space is missing between incode and outcode, add one:
+    pcwithspace = stringr::str_replace(string = postcodevar, 
+                               pattern = "(?=.{3}$)",
+                               replacement = " ")
+    }
+  # Return the postcodes with space added:
+  return(pcwithspace)
+}
+
+###############################################################################
+
+# Read in the raw data set (where postcodes are not in the correct format):
+rdmdata <- rio::import(file = here("data", "CaseStudy_RDM_anon_data.csv"))
+
+# Use the add_space function to correct postcode format:
+rdmdata <- rdmdata %>% 
+  rowwise() %>% 
+  mutate(postcode_home = add_space(postcode_home)) %>% 
+  mutate(postcode_uk_travel = add_space(postcode_uk_travel)) %>% 
+  mutate(postcode_exposure = add_space(postcode_exposure))
+
+
+```
+
+
+
+### More on regular expressions
+
+In the above code, postcodes were re-formatted to include a space between the outcode and incode with a function called `add_space`.  This function used regular expressions, or "regex" to determine if a space was already present in the code or not, and where missing, add the space as the fourth-last character in the text string.  
 
 While this has nothing specifically to do with mapping, it is quite useful to understand and be able to construct regular expressions as they are language agnostic (the same expressions can be used in STATA, python, SQL etc.) and can be used for many data cleaning tasks (wherever patterns within text strings need to be identified, extracted or replaced). 
 
