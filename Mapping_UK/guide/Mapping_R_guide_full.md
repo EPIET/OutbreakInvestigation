@@ -217,6 +217,11 @@ pacman::p_load(rio,
                update = TRUE)
 ```
 
+    ## package 'blob' successfully unpacked and MD5 sums checked
+    ## 
+    ## The downloaded binary packages are in
+    ##  C:\Users\amymi\AppData\Local\Temp\RtmpIZ0mVB\downloaded_packages
+
 Note that each time you restart R or RStudio, you will need to rerun the
 `pacman::p_load()` function to load the required libraries into your
 current session. We therefore suggest you copy this code and paste it at
@@ -393,7 +398,14 @@ of data (.csv, .xls, .xlsx, .rds) with a single command:
 This code also uses the `here` package as it provides some simple syntax
 for building relative file paths, that will work on any computer when
 you share your code provided everyone starts from a .Rproj file in the
-root of the course materials folder:
+root of the course materials folder.
+
+Lastly before starting to interrogate the data, we will use the
+`clean_names()` function from the `janitor` package. This function
+removes non-alphanumeric characters and spaces from column names in a
+data set, to make them easier to reference in r code. It will also
+change all the column names to lower case. Spaces are replaced with an
+underscore.
 
 ``` r
 ##################################################################
@@ -408,9 +420,7 @@ rdmdata <- rio::import(file = here("data", "CaseStudy_RDM_anon_data_cleanpcodes.
 # Use this data set if you have trouble geocoding:
 # rdmdata <- rio::import(file = here("data", "CaseStudy_RDM_anon_data_coords.csv"))
 
-##################################################################
 # Clean variable names:
-
 rdmdata <- rdmdata %>% 
   janitor::clean_names()
 
@@ -498,15 +508,15 @@ rdmdata <- rdmdata %>%
 
     ## Passing 59 addresses to the Nominatim single address geocoder
 
-    ## Query completed in: 60 seconds
+    ## Query completed in: 60.6 seconds
 
     ## Passing 59 addresses to the Nominatim single address geocoder
 
-    ## Query completed in: 60.2 seconds
+    ## Query completed in: 60.5 seconds
 
     ## Passing 47 addresses to the Nominatim single address geocoder
 
-    ## Query completed in: 47.9 seconds
+    ## Query completed in: 48.3 seconds
 
 You now have new variables containing latitude and longitude for the
 three postcode variables as follows:
@@ -634,7 +644,7 @@ pointmap <- ggmap::ggmap(coordinatesmap,
                          extent = 'panel', 
                          maprange = FALSE) +
   geom_point(data = rdmdata, 
-             aes(x = home_long, y = home_lat), 
+             aes(x = exposure_long, y = exposure_lat), 
              colour = "#238443",
              fill = "darkred",
              alpha = 0.5,
@@ -1003,6 +1013,11 @@ point with some data about the case from our case dataset. Note that
 because the leaflet map is a html object, we need to create the
 annotations using html syntax for line breaks (`<br/>`).
 
+If desired, you can also superimpose the boundaries of health regions
+ontop of a leaflet map, with the `addPolygons()` command, using an sf
+(shape file) object as input. An example of this is shown in the code
+below.
+
 When distributing leaflet maps for public consumption, users are
 strongly advised to set a zoom limit - otherwise personal data (the
 exact location of the patient’s house) will be visible at the maximum
@@ -1016,11 +1031,13 @@ such as street-level variations in the spatial distribution of cases
 rdmleaflet <- leaflet() %>% 
   # Add open street map (default base layer)
   addTiles() %>% 
+  # Add transformed shapefile of regions
+  addPolygons(data = phecll, weight = 5, col = "black") %>% 
  # Add markers with descriptive labels:
   addMarkers(lng = rdmdata$home_long,
              lat = rdmdata$home_lat,
              popup = paste("ID: ", rdmdata$caseid, "<br/>",
-                           "Epilink: ", rdmdata$epi.cluster, "<br/>", 
+                           "Epilink: ", rdmdata$epi_outbreak, "<br/>", 
                            "RDM clade: ", rdmdata$wgs_rdm_cluster), 
              clusterOptions = markerClusterOptions()) 
 

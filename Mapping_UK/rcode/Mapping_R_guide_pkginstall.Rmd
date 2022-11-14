@@ -1,0 +1,149 @@
+---
+title: "Mapping in R: pre-course instructions"
+author: "Adapted from material by Daniel Gardiner and Amy Mikhail"
+date: "`r format(Sys.Date(), format = '<br/>Updated on %d %B %Y')`"
+output:
+  word_document: 
+      toc: true
+      toc_depth: 3
+urlcolor: blue
+always_allow_html: true
+---
+
+```{r restrict output, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+
+################################################################
+# FUNCTION TO RESTRICT RESULTS TO A FEW LINES OF OUTPUT:
+
+# Check if knitr is installed, if not install it:
+if (!requireNamespace("knitr", quietly = TRUE)) install.packages("knitr")
+
+# Load knitr
+library(knitr)
+
+# Define empty output:
+hook_output <- knit_hooks$get("output")
+
+# Function to restrict lines of output:
+knit_hooks$set(output = function(x, options) {
+  lines <- options$output.lines
+  if (is.null(lines)) {
+    return(hook_output(x, options))  # pass to default hook
+  }
+  x <- unlist(strsplit(x, "\n"))
+  more <- "..."
+  if (length(lines)==1) {        # first n lines
+    if (length(x) > lines) {
+      # truncate the output, but add ....
+      x <- c(head(x, lines), more)
+    }
+  } else {
+    x <- c(more, x[lines], more)
+  }
+  # paste these lines together
+  x <- paste(c(x, ""), collapse = "\n")
+  hook_output(x, options)
+})
+
+``` 
+
+
+# Preparation and package installs
+
+To work through this tutorial, you will need:
+
+   + a recent version of R (>= 4.1.x) and Rstudio (>= 2022.x)
+   + required packages installed (see below)
+   + internet connection (required for geocoding and downloading static maps)
+   + this guide (provided in the course materials folder, also [accessible online](https://github.com/EPIET/OutbreakInvestigation/blob/master/Mapping_UK/guide/Mapping_R_guide.md))
+   + the data sets (provided in the course materials folder)
+
+
+## Installing required packages
+
+This section describes how to install and load the packages that you will need for this mapping tutorial.  Some brief details on why each package was selected are provided below:
+
+   + `pacman` - Checks for, installs (if needed) and loads multiple packages at once
+   + `rio` - import multiple different data types with a single command
+   + `here` - import and export data using relative file paths
+   + `janitor` - handy functions for data cleaning
+   + `tidyverse` - collection of packages based on tidy data format and dplyr syntax
+   + `tidygeocoder` - geocoding (converting UK postcodes to longitude and latitude)
+   + `sf` - converts meta data and coordinates to a "simple feature" object for maps 
+   + `osmdata` - free OpenStreetMap resource for creating map boundary boxes
+   + `ggmap` - "grammar of graphics" package for creating and displaying static maps
+   + `scales` - create pretty breaks for choropleth maps
+   + `leaflet` - java package for making interactive maps with more complex features
+   + `htmlwidgets` - allows saving of leaflet maps as html files
+   
+To ensure that the package installation goes smoothly, you have been provided with a separate package installation script.  
+
+  1. Prior to running this script, you should close any open instances of R and RStudio
+  2. Open a fresh instance of RStudio
+  3. Within RStudio, browse for and open the package installation script
+  4. Restart R by going to `Session` and then `Restart R` in the top toolbar of the RStudio menu as shown in the image below.
+  5. Run the code in the script as instructed, to install the packages.
+  6. If prompted to update or install additional packages, select the `From CRAN` option.
+  7. If you encounter any issues, please contact the organizers for help.
+
+
+![Restarting R from RStudio](`r here::here("images", "Restart_r.png")`)
+
+
+After starting a fresh RStudio and R session, you will first need to install the `pacman` package.  This package has a function which makes installing and loading other packages much easier.  The code below will first check to see if `pacman`is already installed in your R library, and if not, install it:  
+
+```{r package_installs, message=FALSE, warning=FALSE}
+
+##################################################################
+# INSTALL PACKAGES
+
+# Check if the 'pacman' package is installed, if not install it:
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
+
+
+```
+
+Next, you can use the `pacman::p_load()` function to check if the rest of the packages required for this tutorial are already installed in your R library.  Any missing packages will be automatically installed with this function.  
+
+```{r package_loading, message=FALSE, warning=FALSE}
+
+##################################################################
+# LOAD LIBRARIES
+
+# Load the required libraries into the current R session:
+pacman::p_load(rio,
+               here,
+               janitor,
+               tidyverse,
+               tidygeocoder,
+               sf,
+               osmdata,
+               ggmap,
+               scales,
+               leaflet,
+               htmlwidgets, 
+               install = TRUE, 
+               update = TRUE)
+
+```
+
+Note that each time you restart R or RStudio, you will need to rerun the `pacman::p_load()` function to load the required libraries into your current session.  We therefore suggest you copy this code and paste it at the top of the R script that you will use for this exercise. 
+
+The argument `update = TRUE` will automatically install the most recent versions of the listed packages if those versions are higher than the ones in your R library.  Once you have installed the packages for this course, we suggest setting this option to `FALSE` in your R script.
+
+If you have any problems with package installation or loading, please contact the facilitators for help before proceeding.
+
+
+## File organization and housekeeping
+
+In this tutorial, files are imported and outputs exported using relative file paths with the help of the `here` package. 
+
+  1. For this to work seamlessly, we suggest that you download the folder containing all the course materials and save it on your desktop. 
+  2. Next, open the folder and double-click on the the 'Mapping_UK.Rproj' file, which will open a new instance of RStudio.  
+  3. If you click on the 'files' pane in RStudio, you should now be able to see all the sub-folders containing the course materials. 
+  4. Go to the `File` menu in RStudio and select `New file --> R script`.
+  5. Name the R script (e.g. `My_GIS_code.R`) and save it in the same folder.
+  6. Add the `pacman::p_load()` function including the required packages as shown in the code chunk above to the top of your script, changing the `update` argument to `FALSE`.
+  7. Run this code to load the required libraries into your current R session.
+
+You are now ready to begin.
