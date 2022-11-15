@@ -26,7 +26,7 @@ This case study is covered by a Gnu General Public Licence version 3 (GPL-3).  P
 To follow this case study, you will need:
 
    + [R mapping cases study materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Mapping/Mapping_R_casestudy.zip) (contains data sets, case study guide and R coding template)
-   + [R mapping case study guide ](https://epiet.github.io/OutbreakInvestigations/Mapping_R_guide.html) (online version)
+   + [R mapping case study guide ](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html) (online version)
 
 The guide is also available as a HTML and .pdf file in the `guide` sub-directory of the case study materials pack.  We recommend that you use the HTML version of this guide (either online or off-line) as it is easier to navigate between the sections, however if you prefer, you can also print out the .pdf version.
 

@@ -29,7 +29,7 @@ To follow this case study, you will need:
     materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Mapping/Mapping_R_casestudy.zip)
     (contains data sets, case study guide and R coding template)
 -   [R mapping case study
-    guide](https://epiet.github.io/OutbreakInvestigations/Mapping_R_guide.html)
+    guide](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html)
     (online version)
 
 The guide is also available as a HTML and .pdf file in the `guide`
