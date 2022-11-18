@@ -1,0 +1,861 @@
+---
+title: "Outbreak of gastroenteritis after a high school dinner in Copenhagen, Denmark, November 2006"
+subtitle: "adapted from the UK FETP version"
+author: "Johannes Boucsein"
+date: "16. November, 2021"
+output:
+  html_document: 
+      toc: yes
+      toc_float:
+        collapsed: yes
+        smooth_scroll: yes
+  pdf_document: 
+      toc: true
+      toc_depth: 3
+urlcolor: blue
+---
+
+```{r setup, include = FALSE}
+library(knitr)
+opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) # set wd to project folder
+
+library(tidyverse)
+library(here)
+library(skimr)
+library(lubridate)
+```
+
+
+```{r restrict output, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+
+################################################################
+# FUNCTION TO RESTRICT RESULTS TO A FEW LINES OF OUTPUT:
+
+# Check if knitr is installed, if not install it:
+if (!requireNamespace("knitr", quietly = TRUE)) install.packages("knitr")
+
+# Define empty output:
+hook_output <- knit_hooks$get("output")
+
+# Function to restrict lines of output:
+knit_hooks$set(output = function(x, options) {
+  lines <- options$output.lines
+  if (is.null(lines)) {
+    return(hook_output(x, options))  # pass to default hook
+  }
+  x <- unlist(strsplit(x, "\n"))
+  more <- "..."
+  if (length(lines)==1) {        # first n lines
+    if (length(x) > lines) {
+      # truncate the output, but add ....
+      x <- c(head(x, lines), more)
+    }
+  } else {
+    x <- c(more, x[lines], more)
+  }
+  # paste these lines together
+  x <- paste(c(x, ""), collapse = "\n")
+  hook_output(x, options)
+})
+
+``` 
+
+# Introduction to the `R` compendium
+This document is meant as a compendium to the *Copenhagen* case study as taught at the ***EPIET*** *Outbreak Investigation*-module in December 2021. This document is not meant as a general introduction to **R** statistical computation software.  
+
+# Copyright and license
+This case study was designed under a European Centre for Disease Prevention and Control (ECDC) service contract for the development of training material (2010). The data were slightly modified for training purposes.
+
+The following code has been updated from the [https://github.com/EPIET/OutbreakInvestigation](UK FETP version) of the case study to modern **R!** utilizing the [https://www.tidyverse.org/](*tidyverse*) and other contemporary packages. Some parts are adapted from the [https://epirhandbook.com/en/](*EpiR-Handbook*). 
+
+The initial contributors and copyright license are listed below. All copyrights and licenses of the original document apply here as well. 
+
+**Previous authors and contributors to this R companion guide:** 
+
+ - Amy Michail
+ - Alexander Spina
+ - Patrick Keating 
+ - Daniel Gardiner
+ - Lukas Richter
+ - Ashley Sharp 
+ - Hikaru Bolt 
+
+**Source:**
+This case study is based on an investigation conducted by Jurgita Pakalniskiene, Gerhard Falkenhorst (Statens Serum Institut, Copenhagen) and colleagues.
+
+**Case study authors:**
+Jurgita Pakalniskiene, Gerhard Falkenhorst, Esther Kissling, Gilles Desv
+
+**Reviewers:**
+Marta Valenciano, Alain Moren.
+
+**Adaptions for previous modules:**
+
+ - Irina Czogiel
+ - Kristin Tolksdorf
+ - Michaela Diercke
+ - Sybille Somogyi
+ - Christian Winter
+ - Sandra Dudareva-Vizule
+ - Katharina Alpers
+ - Alicia Barrasa
+ - Androulla Efstratiou
+ - Steen Ethelberg
+ - Annette Heißenhuber
+ - Aftab Jasir
+ - Ioannis Karagiannis
+ - Pawel Stefanoff
+
+
+\pagebreak 
+
+
+**You are free:**
+
+- to Share: copy, distribute and transmit the work
+- to Remix: adapt the work, under the following conditions:
+
+**Attribution:**
+
+- You must attribute the work in the manner specified by the author or licensor (but not in any way that suggests that they endorse you or your use of the work). 
+- The best way to do this is to keep as it is the list of contributors (sources, authors and reviewers).
+
+**Share Alike:**
+
+- If you alter, transform, or build upon this work, you may distribute the resulting work only under the same or similar license to this one. 
+- Your changes must be documented. 
+- Under that condition, you are allowed to add your name to the list of contributors.
+
+**Use in teaching and training:**
+You cannot sell this work alone but you can use it as part of a teaching programme, with the understanding that:
+
+- Waiver: Any of the above conditions can be waived if you get permission from the copyright holder.
+- Public Domain: Where the work or any of its elements is in the public domain under applicable law, that status is in no way affected by the license.
+- Other Rights - In no way are any of the following rights affected by the license:
+    + Your fair dealing or fair use rights, or other applicable copyright exceptions and limitations;
+    + The author's moral rights;
+    + Rights other persons may have either in the work itself or in how the work is used, such as publicity or privacy rights.
+- Notice: For any reuse or distribution, you must make clear to others the license terms of this work by keeping together this work and the current license.
+
+This licence is based on [http://creativecommons.org/licenses/by-sa/3.0/](http://creativecommons.org/licenses/by-sa/3.0/)
+
+\pagebreak 
+
+
+# Objectives
+
+At the end of the case study, participants should be able to:
+
+- Conduct an investigation to identify the source of an outbreak and apply the ten steps of an outbreak investigation
+- Explain the contributions of epidemiological and microbiological investigations used in foodborne outbreaks
+- Carrying out data cleaning using R
+- Performing descriptive, univariable and stratified analyses using R
+- Critically evaluate the results from statistical and microbiological analyses and identify food vehicles most likely associated with becoming ill
+- Understand the importance of writing outbreak reports (developing an analytical plan)
+
+\pagebreak 
+
+# The Alert 
+
+On November 14th 2006 the director of a high school in Greater Copenhagen, Denmark, contacted the regional public health authorities to inform them about an outbreak of diarrhoea and vomiting among participants from a school dinner party held on the 11th of November 2006. Almost all students and teachers of the school (750 people) attended the party. 
+
+The first people fell ill the same night and by 14 November, the school had received reports of diarrhoeal illness from around 200 - 300 students and teachers, many of whom also reported vomiting.
+
+
+# Getting started
+
+Your group has been tasked with investigating this outbreak; you have just received the information above.  Before you spring into action, sit together and make a plan. Think about the ten steps of an outbreak investigation and how they apply in this setting. What practical issues might occur?
+
+The particular focus of this session should be on steps 1-4 of the ten steps of outbreak investigations, i.e. the steps you need to take before you sit down and analyse the data.
+
+## Task 01.: Planning the investigation and first steps
+
+These are some things you may want to think about:
+
+- Do you think this is a real outbreak?
+- Based on the available information (e.g. clinical symptoms, incubation period), what kind of pathogen do you suspect at this stage?
+- What further investigation would you conduct to confirm the diagnosis?
+- What kind of case definition would you use for case finding? 
+- How would you carry out the case finding in this setup? 
+- Also think about an effective way of obtaining information about non-cases?
+- Would you carry out an analytical study in this setting? 
+- In case you decide to do a cohort study, how would you define the cohort?
+- What can you do to get a good response in your study?
+- What kind of additional investigations would you carry out?
+
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+
+\pagebreak 
+
+# Data management and different file types in `R`
+
+The epidemiologists in the outbreak team decided to perform a retrospective cohort study in order to identify the food item that was the vehicle of the outbreak. The cohort was defined as students and teachers who had attended the party at the high school on 11th of November 2006.
+
+A questionnaire was designed to conduct a survey on food consumption and on presentation of the illness. Information about the survey and a link to the questionnaire was circulated to students and teachers via the school’s intranet with the request that everyone who attended the school party on 11th of November 2006 should fill in the questionnaire. 
+
+Practically all students and teachers check the intranet on a daily basis, because it is the school’s main communication channel for information about courses, homework assignments, cancellation of lessons etc. The school’s intranet was accessible for ill students or teachers from home so that everyone in the cohort could potentially participate and the response rate could be maximised. Additionally, the information about the investigation was also displayed on the screen in the main hall of the school. 
+
+These data were then exported from the survey tool and saved as `Copenhagen_raw.csv`.
+
+## Section goals
+
+In this section of the case study you will learn:
+
+ - how to navigate the RStudio environment
+ - how to install and load R packages (groups of functions)
+ - how to import and assign your data to an object
+ - how to save commands and the results they produce in an R markdown script
+
+
+## Task 02.: Become familiar with RStudio and import the data
+
+ - Download `Copenhagen_raw.csv` from EVA
+ - Save this file in a clean folder on your computer
+ - Open RStudio
+ - Create a new `.Rproj` file in the same folder as your data set
+ - Create a new R notebook and save it in the same folder
+ - Add the title of this case study and today's date to the top of the R notebook
+ - Set this folder as your working directory
+
+\pagebreak  
+
+## Help for task 02
+
+>"To understand computations in R, two slogans are helpful:
+>
+>- Everything that exists is an object.
+>- Everything that happens is a function call."
+>
+>`r tufte::quote_footer('--- John Chambers')`
+
+If you look at the `Environment` panel (by default in the upper right of the screen in RStudio) you will see a list of objects stored in that environment. When you import your data into R you create an object. This is completely separate from the data file itself (the excel file, or csv file etc.). You can create as many objects as you like, for example you could store a few variables from your original data as a new object, or create a summary table and store that. 
+
+Functions in R are equivalent to commands in STATA. All functions take the form of a name followed by brackets e.g. `functionname()`. Inside the brackets go various arguments. You can access the help file for a function by calling `?functionname`. The help file will show which arguments the function takes and what the function does. You will be using this a lot. Arguments have a default order, as specified in the help file, though you can override this by specifying which argument you are entering using the equals sign `"="`.
+
+A good reference for R users is the book *R for Data Science* by Garrett Grolemund and Hadley Wickham. This is available free online at [http://r4ds.had.co.nz/](http://r4ds.had.co.nz/). For Epidemiology in R, the *EpiR Handbook* is an invaluable source. It is available free of charge at [https://epirhandbook.com/en/](https://epirhandbook.com/en/).  
+
+### RStudio projects
+
+The easiest way to work with R is using RStudio *'projects'*. RStudio is a graphical user interface that runs R in the background. A *'project'* is an RStudio file that saves your workspace so you can easily pick up from where you left off. Put all the files that you will need for this case study in a folder called 'Copenhagen' and create a project in the same folder by clicking `file -> new project -> existing directory`, and choosing the folder. For simplicity, make sure there are no subfolders in this folder, and put all data and scripts in the main Copenhagen folder. 
+
+
+### Installing packages and functions
+
+R packages are bundles of functions which extend the capability of R. Thousands of add-on packages are available in an online repository called the [Comprehensive R Archive Network (CRAN)](https://cran.r-project.org) and many more packages in development can be found on GitHub. They may be installed and updated over the Internet.
+
+
+\pagebreak
+
+For this session, we will mainly use packages which come ready installed with R (base code), but where it makes things easier we will use the following add-on packages from CRAN:
+
+ - `devtools`
+ - `dplyr`
+ - `ggplot2`
+ - `here`
+ - `lubridate`
+ - `skimr`
+
+`dplyr` and `ggplot2`, as well as some other packages are part of a collection called the `tidyverse`. This collection provides a lot of new functionality to base R and is widely considered to be the bread and butter of contemporary R. You will be using these packages a lot and it is highly recommended to familiarize yourself with the added functionality each of the package offers (see: [https://www.tidyverse.org/packages/](https://www.tidyverse.org/packages/)). Each package has its own webpage, providing an introduction and general overview, *vignettes* showcasing how to use the most important functions, and invaluable *"cheat sheets"* (see for example: [https://dplyr.tidyverse.org/](https://dplyr.tidyverse.org/)).
+
+The first thing you will need to do is install all the packages you need. Each package is installed only once - once it is added to your *library*, you can load it whenever you need it. You can do this manually, by feeding each package individually to the base-R function `install.packages()` though this becomes tedious quickly. Alternatively, you can utilize a package that is specifically designed to easily and quickly install, load, and update packages. For learning purposes, we will do both (note: requires an **internet connection** as the packages will be downloaded from online repositories).
+
+```{r, echo = TRUE, results='hide', eval=FALSE}
+# install package `pacman` manually
+install.packages("pacman")
+library(pacman)
+
+# use the 'pacman'- function 'p_load' to install packages. 
+pacman::p_load(
+  devtools,
+  tidyverse,
+  here,
+  lubridate,
+  skimr,
+  here,
+  rio,
+  janitor,
+  lubridate, 
+  epiR, 
+  apyramid,
+  gtsummary,
+  EpiStats
+)
+
+```
+
+
+
+### Setting your working directory 
+
+Just as in STATA you can set a folder to be your working directory (using the `setwd()` command). Open the project that you've created and you will see that the working directory defaults to the same folder as the `.Rproj` file: you can check this by calling `getwd()`. You can see what is in your working directory by looking at the **Files tab** (by default in the bottom right panel of RStudio). If you want to set your working directory you can use the function `setwd()` (Note that R file paths use forward slashes "/", while windows file paths use back slashes "\\";  if you copy a path from windows you have to change them manually). It is not recommended to specify your working directory manually ("*hard pathing*"), because it leads to problems if you share your code with other persons, or if you would like to use it on a different computer: The directory `C:\\user_snugglybear\\myfiles\\project` may be present at one computer, while not on another. 
+
+A more robust approach is to use *relative pathing*: to set the working directory relative to some file. It is considered best practice to specify your working directory relative to your `.Rproj`-file. This way, if you share your code and project with someone else, their working directory is automatically set to wherever they store the files you share. An easy way to do so is to use the `here` package we just installed; this automatically detects the directory where your `.Rproj` file is stored. You can also use the function `set_here()` from this package to set a place-holder in the current directory and use that to set the working directory. 
+
+```{r set working directory, echo=TRUE, message=FALSE, results='hide', eval = FALSE}
+
+# Check the location of your current working directory:
+getwd()
+here()
+
+# If happy with this location, set a placeholder in the current directory:
+here::set_here()
+
+# Set the working directory relative to the location of the .here file you just created:
+setwd(here::here())
+
+```
+
+
+### Reading in datasets
+
+Open the data set `copenhagen_raw.csv` using the `read_csv()` command and assign it as an object using `<-`. This dataset has been exported from the survey software and saved as a `.csv` file.  It is also possible to import datasets from other formats, such as excel or stata by using additional packages such as `readr` or `readxl`. Datasets in `R` are stored and can be referred to using the name that has been assigned to it (in our case **"cph"**). R can hold many data sets in memory simultaneously, so there is usually no need to save intermediate files or close and re-open datasets. You cam also use the `import` function from "rio" package to import datasets from most formats.
+
+
+```{r, echo = TRUE, results='hide', message=FALSE, warning=FALSE}
+# Read in your data from a csv file
+#please specify the subfolder "data" if the dataset is stored there.
+cph <- rio::import(here("data","Copenhagen_raw.csv")) 
+```
+
+### Browsing your dataset 
+
+`Rstudio` has the nice feature that everything is in one browser window, so you can browse your dataset and your code without having to switch between browser windows. 
+
+```{r, echo = TRUE, eval=FALSE}
+
+# To browse your data, use the View command
+View(cph)
+
+```
+
+```{r, echo = TRUE, warning=FALSE}
+
+# To see the dimensions (number of rows and columns) of your dataset, use dim()
+dim(cph)
+
+#To see the names of the variables, use names()
+names(cph)
+
+```
+
+Alternatively, you can also view your dataset by clicking on the `cph` object in the top right "*environment*" panel of your `RStudio` browser.  
+Your global environment is where you can see all the datasets, functions and other objects you have loaded in the current session.
+
+
+### Saving your code in R Scripts
+
+You can save your code in R *scripts*. Scripts are a fundamental part of programming. They are documents that hold your commands (e.g. functions to create and modify datasets, print visualizations, etc) and allow you to save a script and run it again later. There are many advantages to storing and running your commands from a script (vs. typing commands one-by-one into the R console): 
+
+  - Portability - you can share your work with others by sending them your scripts
+  - Reproducibility - so that you and others know exactly what you did
+  - Version control - so you can track changes made by yourself or colleagues
+  - Commenting/annotation - to explain to your colleagues what you have done
+
+
+Create a new script by clicking the top left icon (below 'File') and choosing "R Script". You can write comments in your code using "#"
+
+Alternatively, you could create an R markdown notebook, which will integrate text you write with calculations, figures, graphs and other outputs.  This format is very useful as R code can be split into 'chunks' that can be run separately and you can preview the output as you go. R markdown notebooks are slightly simplified versions of R markdown documents, which you can use to create automated reports. To create an R markdown notebook, go to `File --> New file --> R Notebook...` and follow the instructions to set up your document. For more info, see the [https://epirhandbook.com/en/reports-with-r-markdown.html#reports-with-r-markdown](*EpiR Handbook* Chapter on *markdown*).
+
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+
+# Data cleaning and recoding in `R`
+
+Now that we know our way around R and RStudio, we can begin checking the dataset for implausible values and other errors. Data checking and cleaning are important steps in any analysis. Some say that it can take up to 80% of the analysis time when done properly.
+
+## Section goals
+
+In this section of the case study you will learn:
+
+ - how to describe key properties of your dataset
+ - check for errors
+ - recode variables to a different type
+ - create new variables
+
+## Task 03.: Describing your dataset 
+
+You can view the structure of your data set using the following commands. Each of these commands can be run for individual variables also. 
+
+`dplyr::glimpse()` provides an overview of the structure of your data:
+
+```{r, echo = TRUE, warning=FALSE, output.lines = 9}
+# View structure:
+str(cph)
+glimpse(cph)
+```
+
+`skimr::skim()` provides information on variable classes, completeness and number of missing values, as well as mean, sd, quartiles, and a rudimentary histogram for numeric variables:
+
+```{r, echo = TRUE, warning=FALSE, eval=FALSE}
+# Summarise data:
+skim(cph)
+```
+
+
+## Task 04.: Error checking and recoding
+
+### Sub-task 04.01 Error checking
+
+Check for errors using appropriate R commands - there are more than four different kinds of errors hidden in the `copenhagen_raw.csv` data! Errors you may wish to look for include:
+
+ - Incorrect assignment of variable types (for example dates stored as character strings)
+ - Incorrect assignment of missing values (these need to be encoded as `NA` in R)
+ - Incorrectly entered data (for example age entered as 150 is highly unlikely to be true)
+
+Record and save the commands you use (and some annotation explaining what they are) in your R script or R Notebook, so that you can easily run them again.
+
+
+### Sub-task 04.02: Recoding
+
+You may have noticed the following errors - use appropriate R commands to correct (recode) these errors in your data set:
+
+ - In the variable `age`;
+     + Change the value 180 --> 18
+     + Change the value 8 --> 18
+     + Change the value 16 --> 61
+ - In the variable `onset`;
+     + Change the onset date to `NA` for respondents that didn't report symptoms
+
+
+### Sub-task 04.03: Create case definition
+
+Create a suitable case definition (logical variable in which cases = `TRUE` and non-cases = `FALSE` according to the criteria below):
+
+In the study, a **case** was defined as:
+ - a person from the cohort
+ - presenting with diarrhoea OR bloody diarrhoea OR vomiting
+ - within 48 hours of their meal
+
+Anyone who presented with diarrhoea or vomiting from 6pm on November 11th to 5:59pm on November 13th was included as a case.  All other participants including anyone with symptoms outside this time window are defined as "not ill" (as they probably didn't become sick at the party).
+
+You may now wish to review your data and check if there are any respondents who fall outside the cohort of interest; if so, create a new subset of your data excluding these respondents and use this subset for further analysis.
+
+
+\pagebreak
+
+## Help for Task 04
+
+### Help for Sub-task 04.01: Error checking
+
+You can examine a variable within a dataset using the `$` sign and then the variable name (e.g. `cph$age`). 
+
+Alternatively, you can also refer to or subset a dataset using square brackets: 
+ - the part before the comma refers to the rows 
+ - the part after the comma refers to columns 
+ 
+Columns and rows can be referred to by name (as a character string) or by their numeric index: 
+ - By index: `cph[1:10,1:5]` first 10 rows and first 5 columns of the `cph` data
+ - By name: `cph[,"age"]` gives you the variable age as a vector. 
+
+The `table(...)` function will create a frequency table.
+
+
+```{r}
+# Class() tells you what kind of object it is
+class(cph)
+# cph is a data frame, which is really just a table made up of a list of vectors
+
+class(cph$age)
+# Note that age is already a numeric variable which is correct
+```
+
+```{r}
+# The table command will give a very basic frequency table (counts) 
+# In this example the first line of the output is the age and the second is the frequency.
+table(cph$age)
+```
+
+What do you notice? 
+
+You can subset a dataset using `[...]` in combination with logical statements using mathematical operators such as:
+
+ - 'is equal to' (note the double equals sign) `==`
+ - 'does not equal' `!=`
+ - 'less than' `<`
+ - 'greater than' `>`
+ - addition, subtraction, multiplication and division: `+`, `-`, `*`, `/`
+ 
+These are known as conditional statemets, which can be used to filter your data.  Conditional statements can be applied to any data type (numeric, text or dates).
+
+```{r}
+# You can look at age among teachers using the group variable
+table(cph$age[cph$group == 0])
+# One teacher is too young! you wouldn't have noticed that without looking at the teacher separately!
+
+# You can look at age among pupils using the group variable
+table(cph$age[cph$group == 1])
+```
+
+
+Alternatively, the `tidyverse` comes with a package that is designed for data analysis and -cleaning, `dplyr`. It provides a more modern approach that evolves around a core set of functions and the so-called pipe `%>%`. It is designed to be easily readable by humans, and focuses on an almost sentence-like coding structure, using subjects, verbs, and objects. See the following example. Try guessing what the code does (hint: The pipe takes its left side and forwards it to its right side. You can think of it as *"take this and then do that"*)! 
+
+```{r}
+cph %>% 
+  filter(group == 1) %>% 
+  select(age) %>% 
+  table()
+```
+> "Take `cph` and then filter only those lines that have `group == 1`,
+> 
+> take the result and then select only the column `age`,
+>
+> take the result and then build a table."
+
+An in-depth introduction of `dplyr` and its main verbs `select()`, `filter()`, `summarize()`, and `mutate()` is well beyond this compendium. However, it is highly recommended to familiarize yourself with this package and coding style. See the links under task 2 for further resources. 
+
+```{r}
+# You can look at time people started becoming ill 
+table(cph$starthour, exclude = NULL)
+
+# exclude = NULL makes it that nothing is excluded: even missing values are shown. 
+
+#You can also use tabyl from the janitor package
+cph %>% 
+  janitor::tabyl(starthour)
+
+```
+
+
+```{r}
+# People did not have dinner but ate tuna, bread or veal
+cph %>% 
+  tabyl(meal, tuna, show_na=T)
+
+cph %>% 
+  tabyl(meal, bread, show_na=T)
+
+cph %>% 
+  tabyl(meal, veal, show_na=T)
+
+```
+
+Simple logical statements can be combined into more complex statements using 
+  
+ - 'and' (to bind multiple statements together - this is an ampersand) `&`
+ - 'or' (to indicate that either of two statements must be met - 'bar' symbol not capital I) `|`
+
+Additionally, 
+
+ - the order in which statements should be evaluated is indicated by enclosing them in parentheses `()`, just as you would to in a math formula. 
+ - to refer to missing values, use the `is.na(...)` logical function
+ - to negate a statement, put an exclamation mark in front of it, e.g. `!is_na(...)` = 'not missing'
+
+Let´s find all those persons with a `day of onset` but with no `symptoms`. 
+
+```{r}
+#Using base R
+table(cph$dayonset[(cph$diarrhoea != 1 | is.na(cph$diarrhoea)) & 
+                  (cph$vomiting != 1 | is.na(cph$vomiting) & 
+                     (cph$bloody != 1 | is.na(cph$bloody))) ])
+
+#Using tidyverse
+cph %>% 
+  filter((diarrhoea!=1 | is.na(diarrhoea)) & (bloody!=1 | is.na(bloody)) & (vomiting!=1 | is.na(vomiting))) %>% 
+  select(dayonset) %>% 
+  table()
+
+```
+
+As you can see, combining conditions to longer statements can get quite difficult to read quickly. The `tidyverse` offers two helpful conditions: `if_all()`and `if_any()` - guess what they do. They are fed with a set of columns to evaluate and a function or logical statement to evaluate with. The following code is the same as above, usiing `tidyverse`-style:
+
+```{r}
+# we ask if the condition holds true for all provided columns
+# `if_any()` works analogously
+
+cph %>% 
+  filter(if_all(.cols = c(diarrhoea, bloody, vomiting),
+                .fns = ~ (. != 1 | is.na(.))
+                )
+         ) %>% 
+  select(dayonset) %>% 
+  table()
+```
+
+> Take `cph` then filter all rows, for which all of `diarrhoea`, `bloody`, `vomiting` is not 1 or is NA
+>
+> then select only column `dayonset`
+>
+> then construct a table
+
+The result should be the same as the base-R code above. Which of the two do you prefer?
+
+\pagebreak
+
+### Help for Sub-task 04.02: Recoding
+
+You can use combinations of the 'assign' symbol and conditional statements to recode data.
+
+**Note:**
+There are four terms in R which have a specific meaning and are always used without quotes:
+
+- `NA` is the symbol for missing values in R (equivalent to STATA ".")
+- `NULL` is the symbol for an empty slot (e.g. the default for optional function arguments is NULL)
+- `TRUE` is for logical variables (equivalent of `1` in a STATA binary variable)
+- `FALSE` is for logical variables (equivalent of `0` in a STATA binary variable)
+
+
+```{r}
+# Correct mistakes in age
+#Using Base R
+cph$age[cph$age == 8] <- 18
+cph$age[cph$age == 180] <- 18
+cph$age[cph$age == 16 & cph$group == 0] <- 61
+
+#Using tidyverse
+cph <- cph %>% 
+  mutate(age=ifelse(age==8 | age==180, 18, age)) %>% 
+  mutate(age=ifelse(age==16 & group==0, 61, age))
+
+summary(cph$age[cph$group==0])
+summary(cph$age[cph$group==1])
+```
+
+The `if_else(...)` function is very helpful: this function takes a conditional statement as its first argument, followed by the value to assign if that statement is true, and the value to assign if that statement is false: *"If {condition} holds true, do X, otherwise do Y"* 
+
+```{r}
+# Re-code sex to binary
+cph <- cph %>% 
+  mutate(sex = ifelse(sex == "male", 1, 0) %>% as.double())
+```
+
+Next, correct the mistakes regarding onset date and start hour you identified earlier: Those who have no symptoms should also not have an onset date
+
+```{r}
+# So this is selecting those that are 0 or empty for each of the three symptoms and assigns NA
+#Using Base R
+cph$dayonset[(cph$diarrhoea == 0 | is.na(cph$diarrhoea)) & 
+                  (cph$vomiting == 0 | is.na(cph$vomiting) & 
+                     (cph$bloody == 0 | is.na(cph$bloody))) ] <-  NA
+cph$starthour[(cph$diarrhoea == 0 | is.na(cph$diarrhoea)) & 
+                  (cph$vomiting == 0 | is.na(cph$vomiting) & 
+                     (cph$bloody == 0 | is.na(cph$bloody))) ] <-  NA
+table(cph$dayonset)
+
+#Using Tidyverse
+cph <- cph %>% 
+  mutate(dayonset=ifelse(
+                (diarrhoea == 0 | is.na(diarrhoea)) & 
+                (vomiting == 0 | is.na(vomiting)) & 
+                  (bloody == 0 | is.na(bloody)), NA_character_, dayonset))  
+
+tabyl(cph, dayonset)
+
+cph <- cph %>% 
+  mutate(dayonset=na_if(cph$dayonset, "")) #to transform the empty values to NAs
+
+cph <- cph %>% 
+  mutate(starthour=ifelse(
+                (diarrhoea == 0 | is.na(diarrhoea)) & 
+                (vomiting == 0 | is.na(vomiting)) & 
+                  (bloody == 0 | is.na(bloody)), NA_character_, starthour))  
+
+tabyl(cph, starthour)
+
+```
+
+Find below the `tidyverse`-version. Unfortunately, the assign-operator `<-` does not follow the tidyverse-style; if it did, it would follow as the last step: "...and then assign the result to `cph`." The way it is, think of it as: "assign to `cph` the result of all the steps that happen next:". Here, we introduce a new key `dplyr`-verb: `mutate()`. It is used to change existing variables and add new variables.
+
+```{r}
+cph <- cph %>% 
+  mutate(across(
+  .cols = c(dayonset, starthour), 
+  .fns = ~ ifelse(test = if_all(c(diarrhoea, bloody, vomiting), ~ . %in% c(0, NA)), 
+                  yes = NA, 
+                  no = .)
+  ))
+
+```
+
+> Assign to `cph` the result of all the following steps:
+>
+> Take cph and then change the columns `dayonset`and `starthour` so that
+>
+> if all three of `diarrhoea`, `bloody`, and `vomiting` are either 0 or NA, 
+>
+> the value is changed to NA, else it stays the same. 
+
+
+Let´s see, if it worked: 
+
+```{r}
+
+# Get an overview of dayonset and starthour
+tabyl(cph, dayonset)
+tabyl(cph, starthour)
+```
+
+A big part of recoding is ensuring that variables have the correct format. 
+
+```{r}
+class(cph$dayonset)
+glimpse(cph$dayonset)
+```
+`dayonset` has `character` format: it is plain text. It should be `date` format. Thankfully, the package `lubridate` provides functionis, that can turn text into dates. Here, we use the `dmy`-function, because the dates are displayes as day month year. 
+
+```{r}
+cph <- cph %>% 
+  mutate(dayonset = dmy(dayonset))
+
+# double check
+glimpse(cph$dayonset)
+```
+
+
+Similarly, many logical variables are coded as `numeric` with `0` for `FALSE` and `1` for `TRUE`. Luckily enough, R is programmed to see  `1;0` and `TRUE;FALSE` interchangeably and recoding can easily be done using `as.logical()`: telling R to treat the values as `logical` instead of `numeric`. 
+
+```{r}
+
+cph <- cph %>% 
+    mutate(diarrhoea=as.logical(diarrhoea))
+
+class(cph$diarrhoea)
+
+#To do the same for all the variables of interest, you can use `mutate(across)`
+cph <- cph %>% 
+  mutate(across(
+    .cols = all_of(c("diarrhoea", "bloody", "vomiting", "meal")),
+    .fns = ~ as.logical(.)
+  ))
+
+# double check
+glimpse(cph$diarrhoea)
+
+```
+
+Finally, check your work. If you find errors, continue data cleaning until you are satisfied. For example, you could turn some of the other variables to `logical`, too. You could also code `sex` and `class` as `factor` variables. Play around with the data and familiarize yourself with the concepts touched upon in this section. The *EpiR Handbook* and *R for Data Science* are valuable references.  
+
+```{r eval = FALSE}
+skim(cph)
+```
+
+
+
+\pagebreak 
+
+### Help for Sub-task 04.03: Creating a case definition
+
+Create a new variable called 'case' which will have the value `TRUE` if the person meets the case definition, otherwise `FALSE`. Build a set of conditional statements to do this. It is best to start with missing values, as for some people we don't have the information that we need to decide whether they are a case or not. 
+
+First, the base-R version:
+```{r}
+# start with setting everyone to 'missing' as for some people we don't have the information that we need to decide whether they are a case or not
+cph$case <- NA
+
+# assign FALSE to those without symptoms
+cph$case[cph$vomiting == FALSE & cph$diarrhoea == FALSE & cph$bloody == FALSE] <- FALSE
+
+# assign 1 to those with diarrhoea or vomiting
+cph$case[cph$diarrhoea == TRUE | cph$vomiting == TRUE | cph$bloody == TRUE] <- TRUE
+
+# replace those who had onset before 11th nov 18:00 or after 13th nov 18:00
+cph$case[((cph$dayonset == "2006-11-11" & cph$starthour < 18) |
+         (cph$dayonset == "2006-11-13" & cph$starthour > 18))] <- FALSE
+
+# deal with those who haven't been exposed to any food item
+cph$case[cph$meal == FALSE] <- NA
+```
+
+Then, the tidyverse-version:
+```{r}
+# create case definition 
+cph <- cph %>% 
+  mutate(case2 = 
+           case_when(
+             if_all(.cols=c(diarrhoea, vomiting, bloody), .fns = ~ . == FALSE) ~ FALSE, # has no symptoms
+             if_any(.cols=c(diarrhoea, vomiting, bloody), .fns = ~ . == TRUE) ~ TRUE, # has any symptoms
+             dayonset == "2006-11-11" & starthour < 18 ~ FALSE, # onset before
+             dayonset == "2006-11-13" & starthour > 18 ~ FALSE, # onset after
+             meal  == FALSE ~ NA # not exposed to any food 
+             )
+         )
+```
+
+Compare and check for plausibility: 
+
+```{r}
+tabyl(cph, case)
+tabyl(cph, case2)
+```
+
+There are a lot of missing values in the new `case` variable; it might be worth considering assigning a `FALSE` (i.e. code for non-case) to people who have no data for any symptoms (but think about the pros and cons of this assumption). Let´s have a closer look first:
+
+```{r}
+# lots of NAs -why?
+# Maybe symptoms-vars -> How many have no info on all symptoms?
+cph %>% 
+  filter(if_all(.cols=c(diarrhoea, vomiting, bloody), 
+                .fns = ~ is.na(.))) %>% 
+  count()
+
+# 135! Which of those have participated in the school dinner?
+cph %>% 
+  filter(if_all(.cols=c(diarrhoea, vomiting, bloody), 
+                .fns =~ (is.na(.) & meal == TRUE))
+         ) %>% 
+  count()
+```
+
+We don´t have info on symptoms for 135 individuals, of which 119 participated in the school dinner and also participated in the study. Do you think it is reasonable to assume that these individuals did not develop symptoms? The missing values could be due to for example them skipping the questions in the questionnaire. 
+
+```{r}
+# base R version
+cph$case[(is.na(cph$vomiting) & is.na(cph$diarrhoea) & is.na(cph$bloody)) & cph$meal == TRUE] <- FALSE
+
+# tidyverse-version
+cph <- cph %>% 
+  mutate(
+    case = ifelse(if_all(.cols =c(diarrhoea, vomiting, bloody), .fns =~ is.na(.)) & meal == TRUE,
+                  FALSE, 
+                  case))
+
+```
+
+Do a plausibility check to see if everything worked:
+
+```{r}
+# How many cases did you generate? 
+tabyl(cph, case)
+
+# check if people were assigned properly:
+# 1. anyone with symptoms, but not a case?
+cph %>% 
+  filter(if_any(.cols =c(vomiting, diarrhoea, bloody), .fns =~ . == TRUE & case == FALSE)) %>% 
+  count()
+# 2. anyone without symptoms but a case?
+cph %>% 
+  filter(if_all(.cols =c(vomiting, diarrhoea, bloody), .fns = ~ . %in% c(FALSE, NA) & case == TRUE)) %>% 
+  count()
+```
+
+For the sake of the analysis, we exclude any people from the cohort who didn't eat at the dinner, because we specifically hypothesise a food item to be the vehicle of the outbreak. Excluding persons reduces the sample size and therefore the power slightly, but the investigators considered that this would increase specificity.
+
+We can drop cases that do not meet the case definition by subsetting the data to those where a value for the `case` variable is not missing: 
+
+```{r}
+cph <- cph %>% 
+  filter(!is.na(case))
+```
+
+
+### Saving cleaned data 
+
+You can save your cleaned dataset (and anything else that you have created in your workspace) as an R datafile (.Rda) using the `save()` command and re-load the same dataset using the `load()` command. 
+
+In reality you would not usually do this unless your data set is very large; it should be sufficient to run your R script to import the raw data, clean it and analyse it in one go. 
+
+If you wanted to, this is how you would do it:
+
+```{r, eval= F}
+
+# Save your dataset
+save(cph, file = "cph.Rda")
+
+# Load your dataset 
+load("cph.Rda")
+
+```
