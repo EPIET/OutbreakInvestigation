@@ -1,0 +1,1208 @@
+---
+title: "Outbreak of gastroenteritis after a high school dinner in Copenhagen, Denmark, November 2006"
+subtitle: "Outbreak Investigation Module (OIM) R case study guide"
+author: "Latest edition by Kostas Danis & Amy Mikhail"
+date: "`r format(Sys.Date(), format = '<br/>Updated on %d %B %Y')`"
+output:
+  html_document:
+    code_folding: show
+    toc: true
+    toc_float:
+      toc_collapsed: false
+      smooth_scroll: true
+    toc_depth: 1
+  pdf_document:
+    toc: true
+    toc_depth: 3
+  word_document:
+    toc: true
+    toc_depth: 3
+theme: sandstone
+geometry: margin = 1.5cm
+editor_options: 
+  markdown: 
+    wrap: 72
+urlcolor: blue
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      eval = TRUE,
+                      message = FALSE, 
+                      warning = FALSE, 
+                      ft.align = "left",
+                      fig.width = 12,
+                      out.width = "100%")
+```
+
+
+```{r restrict output, echo=FALSE}
+
+################################################################
+# FUNCTION TO RESTRICT RESULTS TO A FEW LINES OF OUTPUT:
+
+# Check if knitr is installed, if not install it:
+if (!requireNamespace("knitr", quietly = TRUE)) install.packages("knitr")
+
+# Load knitr
+library(knitr)
+
+# Define empty output:
+hook_output <- knit_hooks$get("output")
+
+# Function to restrict lines of output:
+knit_hooks$set(output = function(x, options) {
+  lines <- options$output.lines
+  if (is.null(lines)) {
+    return(hook_output(x, options))  # pass to default hook
+  }
+  x <- unlist(strsplit(x, "\n"))
+  more <- "..."
+  if (length(lines)==1) {        # first n lines
+    if (length(x) > lines) {
+      # truncate the output, but add ....
+      x <- c(head(x, lines), more)
+    }
+  } else {
+    x <- c(more, x[lines], more)
+  }
+  # paste these lines together
+  x <- paste(c(x, ""), collapse = "\n")
+  hook_output(x, options)
+})
+
+``` 
+
+\newpage
+
+------------------------------------------------------------------------
+
+# Preamble {.tabset .tabset-pills}
+
+## Version history
+
+This document is the R practical guide for the *Copenhagen* case study as taught in the **Outbreak Investigation module** in `r format(Sys.Date(), format = "%B %Y")`.
+
+
+**Source:**
+
+This case study is based on an investigation conducted by Jurgita Pakalniskiene, Gerhard Falkenhorst (Statens Serum Institut, Copenhagen) and colleagues.  
+
+**Case study development history:**
+
+The original case study was designed to be performed in STATA.
+
+In 2016, in view of the increasing number of R users among fellows, the first R version of the case study was developed as a companion guide by Daniel Gardiner and Lukas Richter.  The first version used base R syntax and was presented as a series of separate scripts.
+
+In 2017, the R scripts were harmonized and combined in a single R markdown document that also included all the explanatory text and could be used as a standalone guide.  This work was performed by Alexander Spina and Patrick Keating, under a European Centre for Disease Prevention and Control (ECDC) service contract for the development of training material (2010).  The data were also slightly modified for training purposes. 
+
+In 2021, the code in the R markdown document was substantially updated and converted to tidyverse syntax, by Johannes Boucsein.   
+
+In 2022, further adaptations were made to bring the code more into line with the approach taken in the [Epidemiologist R handbook](https://epirhandbook.com/en/).  
+
+This guide is reviewed and updated annually.  The latest version of this guide and accompanying material is maintained in the EPIET Outbreak Investigation module [github repository](https://github.com/EPIET/OutbreakInvestigation).  
+
+To date, the following people have authored or contributed updates to this case study:
+
+**A. Authors of original case study:**
+
+   + Jurgita Pakalniskiene
+   + Gerhard Falkenhorst
+   + Esther Kissling
+   + Gilles Desv
+   
+
+**B. Reviewers of original case study:**
+
+   + Marta Valenciano
+   + Alain Moren
+   
+
+**C. STATA version contributors (to 2021):**
+
+   + Aftab Jasir
+   + Alicia Barrasa
+   + Androulla Efstratiou
+   + Annette Heißenhuber
+   + Christian Winter
+   + Ioannis Karagiannis
+   + Irina Czogiel
+   + Katharina Alpers
+   + Kristin Tolksdorf
+   + Michaela Diercke
+   + Pawel Stefanoff
+   + Sandra Dudareva-Vizule
+   + Steen Ethelberg
+   + Sybille Somogyi
+
+
+**D. R version contributors (2016 to present):**
+
+   + Alexander Spina
+   + Amy Mikhail
+   + Ashley Sharp
+   + Daniel Gardiner
+   + Hikaru Bolt
+   + Johannes Boucsein
+   + Kostas Danis
+   + Lukas Richter
+   + Patrick Keating 
+
+
+The latest review and updates for `r format(Sys.Date(), format = "%B %Y")` were made by:
+
+   + Kostas Danis
+   + Amy Mikhail
+   
+   
+\pagebreak 
+
+
+## Copyright & license
+
+The R code in this case study is covered by a GNU General Public Licence version 3 (GPL-3).  The narrative in this case study is covered by a [Creative Commons licence]((http://creativecommons.org/licenses/by-sa/3.0/) (see below for details).
+
+All copyrights and licenses of the original document apply here as well. 
+
+**You are free:**
+
+   + to Share: copy, distribute and transmit the work
+   + to Remix: adapt the work, under the following conditions:
+
+**Attribution:**
+
+   + You must attribute the work in the manner specified by the author or licensor (but not in any way that suggests that they endorse you or your use of the work). 
+   + The best way to do this is to keep as it is the list of contributors (sources, authors and reviewers).
+
+**Share Alike:**
+
+   + If you alter, transform, or build upon this work, you may distribute the resulting work only under the same or similar license to this one. 
+   + Your changes must be documented. 
+   + Under this condition, you are allowed to add your name to the list of contributors.
+
+**Use in teaching and training:**
+
+You cannot sell this work alone but you may use it as part of a teaching programme, with the understanding that:
+
+   + *Waiver:* Any of the above conditions can be waived if you get permission from the copyright holder.
+   + *Public Domain:* Where the work or any of its elements is in the public domain under applicable law, that status is in no way affected by the license.
+   + *Other Rights:* In no way are any of the following rights affected by the license:
+     + Your fair dealing or fair use rights, or other applicable copyright exceptions and limitations;
+     + The author's moral rights;
+     + Rights other persons may have either in the work itself or in how the work is used, such as publicity or privacy rights.
+   + *Notice:* For any reuse or distribution, you must make clear to others the license terms of this work by keeping together this work and the current license.
+
+
+\pagebreak
+
+
+## Guide structure
+
+There are many different ways to perform the same tasks in R.  However, in this R guide we chose to demonstrate some very straight-forward and concise ways of performing the exploratory, descriptive and analytical steps, as demonstrated in the [Epidemiologist R handbook](https://epirhandbook.com/en/). The `tidyverse` suite of packages and `dplyr` syntax are used throughout. This will allow participants to focus more on what each step is doing and the interpretation of the results. With this approach, participants will be able to rapidly produce the required summary tables, figures and statistics from the data.  For further information, ways to enhance the outputs or alternative approaches, participants should consult the relevant chapters in the Epidemiologist R handbook.
+
+The case study is divided into the following sessions:
+
+   1. Introduction
+   2. Data cleaning and exploring
+   3. Descriptive analysis
+   4. Univariate analysis
+   5. Conclusions
+
+Each session is further divided into sub-tasks.  For each sub-task, some contextual background is provided, followed by some questions to answer.  The questions are complemented by an **R coding tips** section, which demonstrates how to answer the questions using R.  A text explanation of the coding strategy is followed by a demonstration of the code itself in each case.  
+
+Note that coding chunks can be revealed or hidden by clicking on the `code` buttons to the right of these sections.  Alternatively, all the code chunks can be revealed by clicking on the code button at the very top right of this document, and selecting `Show All Code`.
+
+For clarity, the following coding conventions have been used throughout this document wherever possible:
+
+   + each function is preceded by its package name, i.e. `package::function()`
+   + each function argument is explicitly named, i.e. `function(data = mydata)`
+   + the arrow `<-` is used to assign outputs to a named object
+   + in piped workflows, each command starts on a new line with a comment above it
+   + each argument within a function starts on a new line with a comment next to it
+   + the comments explain what each function or argument is doing
+
+
+
+\pagebreak
+
+## Prerequisites
+
+Prior to starting this case study, participants are expected to have a basic knowledge of:
+
+   + The 10 steps involved in an outbreak investigation
+   + How to use R and RStudio
+   + How to use the tidyverse suite of R packages (especially `dplyr`, `ggplot2` and `gtsummary`) 
+   
+This guide focuses on the code necessary to undertake a full outbreak analysis in R, from data cleaning and exploration to descriptive and analytical steps.  It is not intended to be a primary teaching resource on the use of R and RStudio.
+
+Participants who are new to R would benefit from reviewing the following chapters of the free online [Epidemiologist R Handbook](https://epirhandbook.com/en/), which is an invaluable resource:
+
+   + *R basics* (chapters 3 - 7)
+   + *Data management* (chapters 8 - 16)
+   + *Data visualisation* (chapters 29 - 33)
+   + *Analysis* (chapters 17 - 19)
+   
+It is not essential to cover chapter 19 prior to this course, as univariable analysis will be addressed in detail in this case study.
+
+The Epidemiologist R handbook was first published in 2021, to meet the needs of applied epidemiologists for a robust reference on how to perform common tasks within R.   It uses a standardised, step-wise approach to building complete analysis workflows. All the demonstrated code examples in the handbook are based on infectious disease surveillance and outbreak scenarios. It is also being translated into other languages and is a living document; chapters are updated or added as new material is developed.  
+
+Another very useful free online reference for R users is the e-book [*R for Data Science*](http://r4ds.had.co.nz/) by Garrett Grolemund and Hadley Wickham (the author of `tidyverse` R packages). 
+
+
+\pagebreak
+
+
+
+## R setup
+
+### Software requirements
+
+To work through this tutorial, you will need:
+
+   + recent version of R (>= 4.2.x) 
+   + recent version of Rstudio (>= 2022.07.x)
+   + required R packages (see below)
+   + internet connection (required for installing packages)
+
+
+### Case study pack
+
+All the materials required for this case study are included in a zipped (compressed) folder.
+You can download the case study folder from EVA, or alternatively from the online repository for the [Outbreak Investigation Module R materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Copenhagen/Copenhagen_R_casestudy.zip).
+
+The folder should be unzipped to your desktop or to another suitable location on your own computer.  It contains the following sub-folders:
+
+   + `data` - data sets (.csv files) that you will need for this case study;
+      + `Copenhagen_raw.csv`
+      + `Copenhagen_clean.csv`
+   + `guide` - this document in html and pdf formats
+   + `rcode` - R code files;
+      + `packages2install.R` script for installing required packages
+      + `Copenhagen_R_template.Rmd` R markdown code template for this case study
+   + `Copenhagen_2022.Rproj` R project file
+
+We recommend that you use the HTML version of this R guide (which will open in your internet browser) as it is easier to navigate between the sections.  You may either open it off-line from the `guide` folder, or alternatively follow it online from [this link](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_guide_2022.html).
+
+
+### Installing R packages
+
+This section describes how to install and load the packages that you will need for this case study.  Some brief details on why each package was selected are provided below:
+
+   + `devtools` - install packages in different formats
+   + `pacman` - check for, install and load lists of packages in R
+   + `rio` - import and export data files to and from R
+   + `here` -  create relative paths to files to import or export
+   + `tidyverse` - suite of data management and visualisation packages 
+   + `skimr` - explore and summarise data
+   + `lubridate` - transform, format and perform calculations with dates
+   + `janitor` - clean and cross-tabulate data
+   + `gtsummary` -  create publishable summary table with statistics (N, %, OR, RR etc.)
+   + `epikit` - create age categories
+   + `apyramid` - create age sex pyramid
+   + `scales` - add suitable date scales to epicurve
+
+Note that `tidyverse` is a shortcut tag for 8 packages that are designed to work together.  When you load the `tidyverse` you are actually loading the following 8 packages at once:
+
+   + `dplyr` - data manipulation, sorting and summarizing
+   + `tibble` - enhanced data.frame structure with labelled variables
+   + `tidyr` - reshape data to / from tidy formats
+   + `readr` - import data into R
+   + `stringr` - manipulate character strings (text values)
+   + `forcats` - manipulate factors
+   + `purrr` - repeat or iterate functions across multuple variables
+   + `ggplot2` - create graphs
+
+`dplyr` and `ggplot2`, as well as some other packages are part of a collection called the `tidyverse`. This collection provides a lot of new functionality to base R and is widely considered to be the bread and butter of contemporary R. You will be using these packages a lot and it is highly recommended to familiarize yourself with the added functionality each of the package offers (see: [https://www.tidyverse.org/packages/](https://www.tidyverse.org/packages/)). Each package has its own webpage, providing an introduction and general overview, *vignettes* showcasing how to use the most important functions, and invaluable *"cheat sheets"* (see for example: [https://dplyr.tidyverse.org/](https://dplyr.tidyverse.org/)).
+
+To install these packages for the first time, we recommend that you begin with the following steps:
+
+   1. Open RStudio
+   2. Close any open scripts or R markdown files
+   3. Go to the `Session` menu at the top of the RStudio pane and select `Restart R`
+   4. Go to the `File` menu at the top of the RStudio pane and select `Open file...`
+   5. In the dialogue box that opens, browse to the case study folder on your computer
+   6. Select and open `packages2install.R`
+   7. Highlight the entire script and click the `Run` button at the top right of the script
+   8. Wait until all the packages have installed (takes several minutes)
+   9. If you encounter any problems, please ask a facilitator for help.
+   10. Once the packages have finished installing, close RStudio.
+
+\newpage
+
+------------------------------------------------------------------------
+
+# Data preparation {.tabset .tabset-pills}
+
+## 1. Context
+
+### 1a: Objectives
+
+At the end of the case study, participants should be able to:
+
+   + Conduct an investigation to identify the source of an outbreak 
+   + Apply the ten steps of an outbreak investigation
+   + Explain the epidemiological and microbiological contributions to foodborne outbreak investigations
+   + Perform data cleaning and analysis preparation steps using R
+   + Perform descriptive, univariable and stratified analyses using R
+   + Critically evaluate the results from statistical and microbiological analyses and identify food vehicles most likely associated with becoming ill
+   + Understand the importance of writing outbreak reports (developing an analytical plan)
+
+
+### 1b: The Alert 
+
+On November 14th 2006 the director of a high school in Greater Copenhagen, Denmark, contacted the regional public health authorities to inform them about an outbreak of diarrhoea and vomiting among participants from a school dinner party held on the 11th of November 2006. Almost all students and teachers of the school (750 people) attended the party. 
+
+The first people fell ill the same night and by 14 November, the school had received reports of diarrhoeal illness from around 200 - 300 students and teachers, many of whom also reported vomiting.
+
+
+### 1c: Your mission
+
+Your group has been tasked with investigating this outbreak; you have just received the information above.  Before you spring into action, sit together and make a plan. Think about the ten steps of an outbreak investigation and how they apply in this setting. What practical issues might occur?
+
+The particular focus of this session should be on steps 1-4 of the ten steps of outbreak investigations, i.e. the steps you need to take *before* you sit down and analyse the data.
+
+
+### 1d: Investigation plan
+
+These are some things you may want to think about:
+
+   + Do you think this is a real outbreak?
+   + Based on the available information (e.g. clinical symptoms, incubation period), what kind of pathogen do you suspect at this stage?
+   + What further investigation would you conduct to confirm the diagnosis?
+   + What kind of case definition would you use for case finding? 
+   + How would you carry out the case finding in this setup? 
+   + Also think about an effective way of obtaining information about non-cases?
+   + Would you carry out an analytical study in this setting? 
+   + In case you decide to do a cohort study, how would you define the cohort?
+   + What can you do to get a good response in your study?
+   + What kind of additional investigations would you carry out?
+
+\pagebreak
+
+## 2. Data management
+
+The epidemiologists in the outbreak team decided to perform a retrospective cohort study in order to identify the food item that was the vehicle of the outbreak. The cohort was defined as students and teachers who had attended the party at the high school on 11th of November 2006.
+
+A questionnaire was designed to conduct a survey on food consumption and on presentation of the illness. Information about the survey and a link to the questionnaire was circulated to students and teachers via the school’s intranet with the request that everyone who attended the school party on 11th of November 2006 should fill in the questionnaire. 
+
+Practically all students and teachers check the intranet on a daily basis, because it is the school’s main communication channel for information about courses, homework assignments, cancellation of lessons etc. The school’s intranet was accessible for ill students or teachers from home so that everyone in the cohort could potentially participate and the response rate could be maximised. Additionally, the information about the investigation was also displayed on the screen in the main hall of the school. 
+
+These data were then exported from the survey tool and saved as `Copenhagen_raw.csv`.
+
+**Section goals**
+
+In this section of the case study you will learn:
+
+   + how to set up an R project for analysis
+   + how to load R packages (groups of functions)
+   + how to import data sets to R
+   + how to explore and summarise data sets in R
+   + how to check for and correct errors in R
+   + how to define a case with logical conditions in R
+
+
+### 2a: Load packages
+
+In this section, you will become familiar with the provided materials and data sets.  To get started, navigate to the `Copenhagen_R_casestudy` folder that contains the materials for this case study. Open RStudio by double-clicking on the `Copenhagen_2022.Rproj` (R project) file that you will find in the root of this folder.
+
+If you click on the `Files` pane on the lower right panel of RStudio, you should now be able to see the contents of this folder. 
+
+Within this panel, click on `Copenhagen_R_template.Rmd` to open it in your RStudio window.  This is an R markdown file that contains the code demonstrating each step of this case study. You can use this file to adapt and modify the code in order to answer the questions for each section.
+
+
+**R coding tips:**
+
+R packages are bundles of functions which extend the capability of R. Thousands of add-on packages are available in an online repository called the [Comprehensive R Archive Network (CRAN)](https://cran.r-project.org) and many more packages in development can be found on GitHub. They may be installed and updated over the Internet.
+
+The first thing you will need to do is install all the packages you need. Each package is installed only once - once it is added to your *library*, you can load it whenever you need it. We will use a package that is specifically designed to easily and quickly install, load, and update packages, called `pacman`. Note: this process requires an **internet connection** as the packages will be downloaded from online repositories.
+
+First of all, check that the `pacman` package itself is installed on your computer and install it if not:
+
+```{r load_pacman}
+
+# Check if the 'pacman' package is installed, if not install it:
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
+
+
+```
+
+
+Now you can use the `pacman::p_load()` function to check for and load the rest of the required packages:
+
+```{r load_libraries}
+
+# Load the required libraries into the current R session:
+pacman::p_load(rio, 
+               here, 
+               tidyverse, 
+               skimr, 
+               janitor,
+               lubridate,
+               gtsummary, 
+               epikit, 
+               apyramid, 
+               scales)
+
+```
+
+
+### 2b: Import data
+
+You are now ready to import the raw data into R.
+
+**R coding tips:**
+
+The data has been provided to you as a .csv (comma separated values) file, which is stored in a sub-folder called `data`. It is important to first make sure that R is using the folder containing the materials for this case study as the default (working) directory.  Because we opened RStudio by clicking on the R project file in the course materials folder, the working directory should automatically be set to this folder.  
+
+However, we can easily check this with the `here` package:
+
+
+```{r working_directory}
+
+here::here()
+
+```
+
+The `here` function gives us the file path of the current working directory.
+
+We can now use the `rio::import()` function to import this data set into R, and assign (save) it to an object called `linelist`.  The `rio` package is very useful, as it can import and export most file types.
+
+To import the data from within the `data` sub-folder, we will again use the `here` package to locate it.  We provide the name of the sub-folder and of the file we want to import as separate character (text) strings.  The `here` package will then use this to construct a `relative file path` and locate the file.
+
+```{r import_raw_data}
+
+# Import the raw data set:
+linelist <- rio::import(here::here("data", "Copenhagen_raw.csv"))
+
+```
+
+You should now see that you have a `data.frame` called `linelist` in your environment tab.  You should also be able to see how many observations and variables it contains.
+
+You can view the data by clicking on the name of it (`linelist`) in the environment pane, or alternatively, type `View(linelist)` in your R script and run it.
+
+
+### 2c: Exploring the data
+
+Before you can begin analysing the data, you will need to become familiar with its contents and check for any errors, or values that don't make sense.  
+
+In addition, it is advisable to consider what format or class each variable (column) should be in.  This is something you can include in your analysis plan.  For example, if you know you will be creating an epidemic curve of onset dates, you will need to ensure that the onset dates have been correctly interpreted by R as `date` class on import and are not being read as character strings. The column class or type is particularly important if you plan on performing any calculations on that column.
+
+
+**Questions to answer:**
+
+Have a look at the data and create a summary overview to answer the following questions:
+
+   1. How many observations and variables are in the data?
+   2. Are any of the column types incorrect?  If so, which ones?
+   3. Do any of the values look implausible?  Which ones and why?
+
+
+**R coding tips:**
+
+There are several ways to view summary information about a data set in R.  For example, you can type `str(linelist)` (`str` is short for structure) to see basic information about the class and representative values in each column.  
+
+However, a more comprehensive overview is given with the `skim()` function from the `skimr` package.  
+
+```{r check_data}
+
+# Skim the data to get a summary of the column types and values:
+skimr::skim(linelist)
+
+```
+
+
+**Hints:**
+
+   + This command prints results in the console (it has not been saved to an object)
+   + The variables are grouped by type (e.g. character or numeric)
+   + n_missing shows the number of observations with missing values for each variable
+   + complete_rate shows the proportion of observations that are not missing
+   + `min` and `max` for character variables refer to the number of characters per string
+   + `p0` and `p100` for numeric variables refer to minimum and maximum values, respectively.
+   + For more details, see the help file by typing `?skimr::skim` in the console
+
+
+\pagebreak
+
+
+### 2d: Data cleaning
+
+While checking the data, you may have noticed a few problems with the variable types.  Specifically:
+
+   + `dayonset` is classified as a character variable, but it should be a date;
+   + symptom and exposure columns are classified as numeric when they should be logical
+   + some values for age seem implausible (one case is 180 years old!)
+
+
+**Questions to answer:**
+
+   1. How would you convert `dayonset` to the correct date format using `lubridate`?
+   2. What is the most effective way to convert groups of columns to type `logical`?
+   3. How would you further investigate the unlikely ages (8 and 180)?
+   4. How would you correct (hint: recode) these age values?
+
+
+**R coding tips:**
+
+
+#### *2d_i: Dealing with date time variables*
+
+Before using the `lubridate` package to convert `dayonset` to a date, you will need to check what order the day, month and year are in.  We can do this using the base R function `head` which will give you the first 6 values of this coumn:
+
+```{r check_date_format}
+
+# Check date element order:
+head(linelist$dayonset)
+
+```
+
+
+This shows us that the dates are formatted as day, then month (abbreviated character string), then year; so we can use `lubridate::dmy()` to complete the transformation:
+
+
+```{r correct_date_format}
+
+# Update linelist:
+linelist <- linelist %>% 
+  
+  # Change column to date class:
+  dplyr::mutate(dayonset = lubridate::dmy(dayonset))
+
+# Check class of updated column:
+class(linelist$dayonset)
+
+# Check that updated format is correct:
+head(linelist$dayonset)
+
+```
+
+
+Now that the onset dates have been formatted, we can further explore what the distribution of onset dates looks like with a simple histogram.
+
+```{r onset_histogram}
+
+# Check distribution of onset dates with a histogram:
+hist(linelist$dayonset, breaks = "day")
+
+```
+
+This tells us that there is not much variation in the day of onset; in fact, most people fell ill on Saturday 12 November (a day after the implicated meal).  However, the data set also includes the hour of onset in a variable called `starthour`.  We can use the `lubridate` package to combine the date and hour of onset into a date-time variable, which will provide more appropriate units to construct an epicurve with later.  As before, the `lubridate` function to format the date-time variable simply needs to reflect the current order and type of date and time units available.  
+
+
+```{r format_time_col}
+
+# Check format of time variable:
+head(linelist$starthour)
+
+```
+
+It seems that hours have been recorded as double digits (using the 24-hour clock).  Therefore, we can combine them with onset dates using the `lubridate::ymd_h` function (remember that we already converted `dayonset` to R date format which has the order year, then month, then day):
+
+```{r combine_date_time}
+
+linelist <- linelist %>% 
+  # Combine dayonset and starthour in a new date time variable:
+  mutate(onset_datetime = lubridate::ymd_h(paste(dayonset, starthour)))
+
+# Inspect the new variable to make sure it is formatted correctly:
+head(linelist$dayonset)
+head(linelist$starthour)
+head(linelist$onset_datetime)
+
+```
+
+Note that we needed to paste `dayonset` and `starthour` together before we could convert the variable to a date-time object.  This is because the function expects a single character string, containing both the date and the time, as input.
+
+
+#### *2d_ii: Changing the class of multiple variables at once*
+
+While skimming the data, it becomes clear that most variables are either binary symptoms or food exposures, that have been encoded as 0 (where the symptom was absent or there was no exposure) or 1 (symptom present or person was exposed to the food item).  In R, binary variables are easier to deal with in calculations if converted to a logical class, i.e. `FALSE` and `TRUE` respectively.  
+
+Before performing this step, it would be wise to check that there aren't any numeric columns that happen to have a range of 0 - 1, as they could be mis-classified as binary during the transformation.  You may have noticed that for each food exposure, the dose (number of portions consumed) has also been recorded; the proportion column names all end in an upper case letter 'D'.  We can use this common pattern in the column names to select and summarize them using the `skim()` function:
+
+```{r skim_dose_cols}
+
+drskim <- linelist %>% 
+  # Select all columns with names that end in upper case 'D':
+  select(ends_with("D", ignore.case = FALSE)) %>% 
+  # Produce the skim summary table
+  skimr::skim()
+
+```
+
+
+We know that the `p0` and `p100` columns in the `skim()` output represent the minumum and maximum values, respectively, for each numeric column.  We now need to check that the maximum values for all the selected columns is greater than 1 (to ensure that they won't be misclassified as binary columns).  
+
+We can do this by scanning the contents of the `numeric.p100` column in the output of `skim()` by eye; but as there are quite a few columns to check, it would be safer to explicitly check the range of values.  We can do this with the base R function `range()`:
+
+```{r maxrange_dose_cols}
+
+# Check range of maximum values across the selected columns:
+range(drskim$numeric.p100)
+
+```
+
+This tells us that the maximum number of portions recorded in all of the dose response columns was 3.  This is all we need to know to safely proceed with the transformation of the true binary columns from `0` and `1` to `FALSE` and `TRUE`.
+
+However, for a more comprehensive summary of the dose response columns, you may prefer to create a summary table.  We can do this using the same logic as before to `select()` the columns, and then pipe this into the `tbl_summary()` function from the `gtsummary` package.  This very useful function automatically creates summary tables from input data, with user-selected summary statistics.  
+
+```{r check_dose_cols}
+
+# Create summary table for dose response columns:
+drtable <- linelist %>% 
+  
+  # Select all the columns with column names that end in upper case 'D':
+  select(ends_with("D", ignore.case = FALSE)) %>% 
+  
+  # Create the summary table, excluding missing values:
+  gtsummary::tbl_summary(missing = "no")
+
+# Print the summary table:
+drtable
+
+```
+
+We can now clearly see how the dose response information was collected; for each food or drink exposure, respondents were recorded as having 0 (i.e. none), 1, 2 or 3 portions.  
+
+Next, we can proceed with the transformation. We can make use of the `dplyr::across()` function to `mutate` (update) multiple columns at once.  This function takes two main arguments; a list of columns to mutate (or a logical condition to select the columns) and the function that will be used to update the columns.  
+
+In this case, we can select the columns that should be converted to logical variables by specifying that they must currently be numeric and that the values must either be equal to `0`, `1` or `NA` (missing).  We can then apply the function `as.logical` to convert them to `FALSE`, `TRUE` and `NA` respectively.
+
+```{r format_logical_cols}
+
+# Convert cols to logical:
+linelist <- linelist %>% 
+  
+  mutate(across(
+    
+    # Select columns that are numeric and where all values are 0, 1 or NA
+    .cols = where(function(x) is.numeric(x) & all(x %in% c(0, 1, NA))), 
+    
+    # Convert columns matching these criteria to logical
+    .fns = as.logical))
+
+
+```
+
+
+#### *2d_iii: Recoding values*
+
+Before deciding what to do about the two cases with unusual ages, it would be useful to see what the overall age distribution looks like. As we did with onset dates, we can look at this with a simple histogram:
+
+```{r hist_age}
+
+hist(linelist$age)
+
+```
+
+We can see that most respondents are well below the age of 50 (which is what we would expect, since this is a high school).  However some respondents do appear to be over 20 years old.  
+
+It would be useful if we could figure out who these older respondents are.  Fortunately, this is possible because there is a variable in the data set called `group`.  In this variable, teachers have been encoded as `0`, while students were encoded as `1`.  If we cross-tabulate `group` with `age`, we would expect all the students to be younger than the teachers.
+
+Before cross-tabulating, we can convert the `group` variable to a factor and give each factor level the appropriate label.  This will make the table easier to read:
+
+```{r factor_group}
+
+linelist <- linelist %>% 
+  
+  # Convert group to a factor and label 0 as teacher, 1 as student:
+  mutate(group = factor(group, labels = c("teacher", "student")))
+
+```
+
+Now we can cross-tabulate `group` with `age`:
+
+```{r crosstab_group_age}
+
+# Create cross-tab:
+janitor::tabyl(dat = linelist, age, group)
+
+```
+
+
+With this table, we can more easily identify ages that are likely to be typographic errors. Specifically:
+
+   + There is one teacher aged 16 (likely digit reversal - should be 61)
+   + There is one student aged 8 (likely missing a digit - should be 18)
+   + There is one student aged 180 (likely has an extra digit - should be 18)
+
+Assuming you have contacted the school to make sure your suspicions about the actual ages are correct, we can now correct them, using `case_when()`. We create logical conditions to identify the incorrect ages, combining the values for age with the group they belong to:
+
+```{r age_recode}
+
+# Update incorrect ages to the correct values with case_when:
+linelist <- linelist %>% 
+  
+  mutate(age = 
+           case_when(
+             # Where the respondent is 16 and a teacher, change their age to 61:
+             age == 16 & group == "teacher" ~ 61, 
+             # where the respondent is 8 or 180 and a student, change their age to 18:
+             age %in% c(8, 180) & group == "student" ~ 18, 
+             # Keep remaining values as is: 
+             TRUE ~ as.numeric(age)
+             )
+         )
+
+```
+
+
+Note that it is necessary to explicitly state that we want the records that don't meet the specified conditions (denoted by `TRUE ~ ...` on the last line) to keep their age values as is.  We also specify that age is `numeric`; if we didn't do this, the `NA` (missing) values could be misinterpreted as logical values by R, and the command would fail because of a conflict in value types.  When using `case_when()` to update values in an existing column, it is essential to specify the values to keep as is in this way, as well as the values to change.  If the values to keep as is are not defined, the rows that don't meet the other criteria will automatically be converted to missing values. 
+
+We can then cross-tabulate age with group again to check that the incorrect ages have been updated:
+
+
+```{r crosstab_group_age_corrected}
+
+# Create cross-tab:
+janitor::tabyl(dat = linelist, age, group)
+
+```
+
+
+Now the ages of teachers range from 26 to 65 years, and students range from 15 to 20 years, which is much more plausible.
+
+
+#### *2d_iv: Categorical variables*
+
+Finally, there are a few other variables that it may be useful to reclassify, before undertaking any analysis.  These are:
+
+   + `sex` - currently character, could be converted to a factor
+   + `class` - currently numeric, could be converted to a factor
+
+Note that for most analytical functions, R expects categorical variables to be factors.  For creating nice graphs and tables, it is also important to label the factor levels.
+
+This can be achieved with `factor()` as we did with `group`.  See if you can figure out how to code this.  If you need help, have a look at the coding solution below.
+
+
+*R coding tips:*
+
+As before, we `mutate()` each variable to convert it to a factor.  We can first use `janitor::tabyl()` to determine what levels we will need in each factor:
+
+```{r factor_class_levels}
+
+# Check variable sex:
+janitor::tabyl(linelist, sex)
+
+# Check variable class:
+janitor::tabyl(linelist, class)
+
+```
+
+
+Now that we know what their current formats are, we can convert them to factors:
+
+```{r factor_convert_class2}
+
+# Get linelist and pipe it in:
+linelist <- linelist %>% 
+  
+  # Now call 'mutate' to update the variables:
+  mutate(
+    sex = factor(sex, labels = c("female", "male")),
+    class = factor(class)
+    )
+
+```
+
+
+Finally, we can `skim()` the data set again, to make sure there are no additional data cleaning tasks to complete:
+
+```{r skim_clean_final}
+
+# Final skim of the data before analysis:
+skimr::skim(linelist)
+
+```
+
+
+
+\pagebreak
+
+
+### 2e: Case definition
+
+The final step to undertake before proceeding to descriptive analysis, is to create a new column in the data set to hold the case definition.  You can call this column `case` and set it to `TRUE` if the individual meets the case definition criteria and `FALSE` if not.
+
+**Variables of interest:**
+
+Your exposure of interest is the school dinner party held on 11 November 2006 at 17:00. You may have noticed while skimming the data, that there is a binary variable called `meal`.  This variable indicates whether people attended the school dinner party and ate a meal there, or not.
+
+Other variables that will be helpful to include in your case definition are `onset_datetime` (hint: check that case onset date/time is **after** exposure) and symptom variables (hint: not everyone on the linelist fell ill).  The symptoms included in the data set are:
+
+   + `abdo` (abdominal pain)
+   + `diarrhoea`
+   + `bloody` (bloody diarrhoea)
+   + `nausea`
+   + `vomiting`
+   + `fever`
+   + `headache`
+   + `jointpain`
+
+
+**Questions to answer:**
+
+   1. Decide on a case definition (time, place, person) and write it in words
+   2. What combination of variables do you need to define a case?
+   3. How would you identify a suitable incubation period from the data?
+   3. Create a new column defining who meets your case definition in R.
+   
+
+**R coding tips:**
+   
+Once a case definition has been created in words, you can easily convert it to logical conditions using the available variables.  People who meet the logical conditions are defined as a case; those who do not meet these conditions are defined as non cases. 
+
+The case definition variable itself can be constructed using `case_when()`.
+
+
+#### *2e_i: Defining a case*
+
+To demonstrate how this works, we will first construct an example case definition in words:  
+
+A case was defined as a person who:
+
+   + attended the school dinner on 11 November 2006 (i.e. is on the linelist)
+   + ate a meal at the school dinner (i.e. was exposed)
+   + fell ill at least 1 hour after the start of the meal
+   + fell ill no later than two days after the school dinner
+   + suffered from diarrhoea with or without blood, or vomiting
+
+
+Non cases were defined as people who:
+
+   + attended the school dinner on 11 November 2006 (i.e. is on the linelist)
+   + ate a meal at the school dinner (i.e. were exposed)
+   + did not fall ill within the time period of interest
+   + did not develop diarrhoea (with or without blood) or vomiting
+
+
+Individuals who didn't meet either set of criteria were excluded from the analysis.
+
+For the sake of the analysis, we exclude any people from the cohort who didn't eat at the dinner, because we specifically hypothesise a food item to be the vehicle of the outbreak. Excluding persons reduces the sample size and therefore the power slightly, but the investigators considered that this would increase specificity.
+
+
+#### *2e_ii: Variables required*
+
+
+The variables needed to define this case definition are:
+
+   + `meal`
+   + `onset_datetime`
+   + `diarrhoea`
+   + `bloody`
+   + `vomiting`
+
+
+#### *2e_iii: defining incubation period*
+
+A suitable incubation period to use in the case definition can be defined by calculating the time between exposure (to the meal) and onset of symptoms, and then looking at the distribution of these time differences.  In this outbreak, incubation periods are easy to calculate, because everyone was exposed at (roughly) the same time and on the same day.  
+
+To explore the distribution of incubation periods, however, we first need to create a case definition without restricting to a maximum incubation time (a minimum incubation time is reasonable to include, because it is not logically possible for people to have become ill before they were exposed).
+
+We can also use some `dplyr` convenience functions to save some typing; specifically, `if_all()` and `if_any()` allow us to construct a logical statement and check if it is true or not, for multiple columns at once.  The syntax is the same as for `across()`; `.cols = ...` takes a list of columns to evaluate and `.fns = ...` takes the logical statement.  In this case the `.` after the first tilde (`~`) is a wild-card placeholder for each of the columns you want to test.  We complete each logical test (or set of logical tests) by assigning the value we want to use if the record evaluates to `TRUE` in the test, on the right-hand-side of the tilde.
+
+```{r casedef_nomax_incubation}
+
+# Create a column called 'case':
+linelist <- linelist %>% 
+  
+  # Create new column for meal date and time:
+  mutate(meal_datetime = lubridate::ymd_hm("2006-11-11 18:00")) %>% 
+  
+  # Create new column for incubation period:
+  mutate(incubation = onset_datetime - meal_datetime) %>% 
+  
+  # Use case_when for logical statements:
+  mutate(
+    case = case_when(
+      
+      # Define cases as regular, bloody diarrhoea or vomiting after meal:
+      meal == TRUE & 
+        if_any(.cols = c(diarrhoea, bloody, vomiting), .fns = ~ . == TRUE) & 
+        (onset_datetime >= meal_datetime) 
+      ~ TRUE, 
+      
+      # Define non cases as no diarrhoea or vomiting after meal:
+      meal == TRUE &
+        (if_all(.cols = c(diarrhoea, bloody, vomiting), .fns = ~ . == FALSE) |
+           (onset_datetime < meal_datetime)) 
+      ~ FALSE,
+      
+      # Define excluded individuals as those with no record of a meal:
+      meal == FALSE | is.na(meal) 
+      ~ NA
+      
+      )
+    )
+
+```
+
+Note: combining a lot of logical statements together like this can be easy to get wrong, so it is advisable to sense-check the new `case` variable that we just created, against each of the logical statements.
+
+We can do this with the `dplyr` functions `filter()` and `count()`:
+
+```{r casedef_nomax_check}
+
+# First check how many people ate a meal at the dinner party:
+atemeal <- linelist %>% 
+  filter(meal == TRUE) %>% 
+  count(meal) %>% 
+  pull()
+
+# Print the result:
+atemeal
+
+# Next, check how many people ate a meal AND had onset after the meal:
+atemealsick <- linelist %>% 
+  filter(meal == TRUE & (onset_datetime >= meal_datetime)) %>% 
+  count(meal) %>% 
+  pull()
+
+# Print the result:
+atemealsick
+
+# Finally check how many people ate a meal AND fell ill afterwards with 
+# any of diarrhoea, bloody diarrhoea, or vomiting:
+atemealsickcase <- linelist %>% 
+  filter(meal == TRUE & 
+           (diarrhoea == TRUE | bloody == TRUE | vomiting == TRUE) & 
+           (onset_datetime >= meal_datetime)) %>% 
+  count(meal) %>% 
+  pull()
+
+# Print the result:
+atemealsickcase
+
+```
+
+
+By examining these statements one by one, we learnt that `r atemeal` people had a meal at the dinner party, of which `r atemealsick` fell ill after the meal, of which `r atemealsickcase` had symptoms that matched the case definition.  The last figure is the same as the number of people for whom `case == TRUE`.
+
+Now we can look at the distribution of incubation times:
+
+```{r hist_incubation}
+
+# First, we can makes sure that only case incubation times are examined:
+linelist <- linelist %>% 
+  
+  # Update incubation to be NA if case is not TRUE:
+  mutate(incubation = ifelse(test = case == TRUE, 
+                             yes = incubation, 
+                             no = NA))
+
+# Median incubation time:
+med_incubation <- median(linelist$incubation, na.rm = TRUE)
+
+# Print the result:
+med_incubation
+
+```
+
+We see that the median incubation time is `r med_incubation` hours. This is useful information, as incubation periods tend to be relatively pathogen-specific.  We can now refine the case definition and limit the maximum incubation period to 48 hours after the meal, as the data points to a fast-acting bacterial toxin or a virus.
+
+We will update the case definition, this time only changing values which were previously defined as a case but had onset of symptoms after 13 November 2006 at 18:00.  Respondents that meet this condition will be reclassified as non cases (i.e. `case = FALSE`).  To do this we will use `case_when()` and take advantage of the `lubridate` function `days()` to set the 48-hour limit for date and time of onset.
+
+```{r update_case_def}
+
+# Update the case definition to limit to onset three days after meal:
+linelist <- linelist %>% 
+  
+  mutate(case = case_when(
+    case == TRUE & (onset_datetime > (meal_datetime + days(2))) ~ FALSE, 
+    TRUE ~ case
+    )
+  )
+
+```
+
+
+Note how each part of the statement is enclosed in brackets; this tells R to calculate what is within the inner-most brackets first, then work outwards.
+
+
+#### *2e_iv: Non-cases vs. exclusion*
+
+There are a lot of missing values in the new `case` variable; it might be worth considering assigning a `FALSE` (i.e. code for non-case) to people who have no data for any symptoms (but think about the pros and cons of this assumption). Lets have a closer look first.
+
+First, we will create a derivative variable to categorise who has any of the three symptoms of interest, using `case_when()`. We can then use `filter()`, `count()` and `pull()` to extract counts of people who are missing data for all the symptoms of interest.
+
+
+```{r create_gastrosymptoms_var}
+
+# Create derivative binary variable for all symptoms of interest:
+linelist <- linelist %>% 
+  
+  mutate(gastrosymptoms = case_when(
+    
+    # Assign NA if all of the symptoms of interest are missing:
+    if_all(.cols = c(diarrhoea, bloody, vomiting), 
+           .fns = ~ is.na(.) == TRUE)
+    ~ NA,
+    
+    # Assign FALSE if none of the symptoms of interest are TRUE:
+    if_all(.cols = c(diarrhoea, bloody, vomiting), 
+           .fns = ~ !. %in% c(TRUE)) 
+    ~ FALSE,
+
+    # Assign TRUE if any of the symptoms of interest are TRUE:
+    if_any(.cols = c(diarrhoea, bloody, vomiting), 
+           .fns = ~ . == TRUE) 
+    ~ TRUE
+    
+    )
+  )
+
+```
+
+*Note:*
+
+When constructing the `case_when()` statements, we started with the most specific condition (where all the symptoms of interest have missing values) and ended with the most general condition (where any of the symptoms of interest are present). Note that if you build your `case_when()` conditions in the opposite order (most general to most specific), you will get different results.  Remember that if two consecutive logical conditions overlap, the last one will overwrite the preceding one. 
+
+Also, we have used a negated `%in` (not in) to check if none of the symptoms are true, instead of `!=` (not equal to).  This is because the statement `!. %in% c(TRUE)` evaluates as `TRUE` for both `FALSE` and missing values (`NA`), whereas the equal sign is a mathematical operator, and by default will ignore NAs.
+
+Now that we have a composite variable for all our symptoms of interest called `gastrosymptoms`, we can check to see how many people had no data for all gastrosymptoms (i.e. the questionnaire was blank for diarrhoea, bloody diarrhoea and vomiting):
+
+```{r no_gastrosymptoms}
+# How many people had no data for any of the symptoms of interest?
+nosymptoms <- linelist %>% 
+  filter(is.na(gastrosymptoms)) %>% 
+  count() %>% 
+  pull()
+
+# Print result:
+nosymptoms
+
+```
+
+Perhaps these people didn't have a meal at the dinner party either; we can check this with another filter:
+
+```{r no_gastrosymptoms_meal}
+
+# Of these, how many also had a meal at the school dinner party?
+nosymptoms_meal <- linelist %>% 
+  filter(is.na(gastrosymptoms) & meal == TRUE) %>% 
+  count() %>% 
+  pull()
+
+# Print results:
+nosymptoms_meal
+
+```
+
+We don´t have information on symptoms for `r nosymptoms` individuals, of which `r nosymptoms_meal` participated in the school dinner and also participated in the study. 
+
+Do you think it is reasonable to assume that these individuals did not develop symptoms? The missing values could be due to for example them skipping the questions in the questionnaire. 
+
+Ultimately, the investigation team decided to remove respondents that did not meet the definition for a case or a non-case from the data set prior to analysis.  We can do this easily with the function `drop_na()`:
+
+```{r drop_nacase}
+
+linelist <- linelist %>% 
+  
+  # Remove rows where case is NA: 
+  drop_na(case)
+
+```
+
+
+Finally, we can save the cleaned data set before proceeding with analysis.  We will do this with the `export()` function of the `rio` package:
+
+```{r export_clean_data}
+
+rio::export(x = linelist, 
+            file = here::here("data", "Copenhagen_clean.xlsx"))
+
+```
+
+
+\newpage
+
+------------------------------------------------------------------------
+
+
+# Descriptive analysis {.tabset .tabset-pills}
+
+## 1. Attack table
+
+
+\pagebreak
+
+
+## 2. Age sex pyramid
+
+
+\pagebreak
+
+
+## 3. Epidemic curve
+
+
+\pagebreak
+
+
+## 4. Incubation graph
+
+
+\newpage
+
+------------------------------------------------------------------------
+
+# Univariable analysis {.tabset .tabset-pills}
+
+
+## 1. Risk ratios
+
+
+\pagebreak
+
+
+## 2. Hypothesis testing
+
+
+\pagebreak
+
+
+## 3. Dose response
+
+
+\pagebreak
+
+
+## 4. Stratified analysis
+
+
+\pagebreak
+
+
+## 5. Confounding
+
+
+
+\newpage
+
+------------------------------------------------------------------------
+
+# Conclusions {.tabset .tabset-pills}
+
+
+## 1. Reflections
+
+
+\pagebreak
+
+
+## 2. Bonus task
+
+
+\pagebreak
+
+
+## 3. Summary
+
+
+\pagebreak
+
+
+## 4. References
+
+

@@ -276,7 +276,7 @@ Note that the `postcode_exposure` for all 9 cases in the `RDM 2014` outbreak is 
 
 For this case study, the following materials have been provided:
 
-   + [Mapping in R case study guide](https://epiet.github.io/OutbreakInvestigations/Mapping_R_guide.html) (online version)
+   + [Mapping in R case study guide](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html) (online version)
    + [Mapping in R case study materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Mapping/Mapping_R_casestudy.zip) (.zip folder).
    
 The case study materials are in a folder called `Mapping_R_casestudy` which includes:

@@ -1,6 +1,16 @@
-EPIET case study: mapping in R
+EPIET case studies: R guides
 ================
-15 November 2022
+29 November 2022
+
+-   <a href="#overview" id="toc-overview">Overview</a>
+    -   <a href="#school-dinner-case-study"
+        id="toc-school-dinner-case-study">School dinner case study:</a>
+    -   <a href="#mapping-case-study" id="toc-mapping-case-study">Mapping case
+        study:</a>
+    -   <a href="#note-on-r-guides" id="toc-note-on-r-guides">Note on R
+        guides:</a>
+    -   <a href="#comments-and-suggestions"
+        id="toc-comments-and-suggestions">Comments and suggestions:</a>
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
@@ -9,21 +19,38 @@ EPIET case study: mapping in R
 This
 [repository](https://github.com/EPIET/OutbreakInvestigation/tree/master/Mapping)
 hosts the R learning materials for the EPIET Outbreak Investigation
-module (OIM). In particular, you will find the R materials for a
-geospatial analysis and mapping case study, based on an outbreak
-associated with contaminated raw (unpasteurised) milk.
+module (OIM).
 
-Credits go to the original authors of the case study, as well as the
-contributors who subsequently adapted the R companion guide (see version
-history in the guide for a full list of authors and contributors). The
-guide is reviewed and updated annually.
+In particular, you will find the R materials for:
 
-This case study is covered by a Gnu General Public Licence version 3
+-   School dinner foodborne outbreak case study (Copenhagen, Denmark)
+-   Unpasteurised milk geospatial analysis and mapping case study (UK)
+
+Credits go to the original authors of the case studies, as well as the
+contributors who subsequently adapted the R companion guides (see
+version history in the guides for a full list of authors and
+contributors). The guides are reviewed and updated annually.
+
+These case studies are covered by a Gnu General Public Licence version 3
 (GPL-3). Please read the [licence
 conditions](https://github.com/EPIET/OutbreakInvestigation/blob/master/LICENSE)
-before using or distributing this case study.
+before using or distributing this case study. Additional details on
+distrubution are also included in the case study guides.
 
-To follow this case study, you will need:
+### School dinner case study:
+
+To follow the Copenhagen school dinner case study, you will need:
+
+-   [R Copenhagen case study
+    materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Copenhagen/Copenhagen_R_casestudy.zip)
+    (contains data sets, case study guide and R coding template)
+-   [R Copenhagen case study
+    guide](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_guide.html)
+    (online version)
+
+### Mapping case study:
+
+To follow the UK mapping case study, you will need:
 
 -   [R mapping cases study
     materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Mapping/Mapping_R_casestudy.zip)
@@ -32,11 +59,15 @@ To follow this case study, you will need:
     guide](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html)
     (online version)
 
+### Note on R guides:
+
 The guide is also available as a HTML and .pdf file in the `guide`
 sub-directory of the case study materials pack. We recommend that you
 use the HTML version of this guide (either online or off-line) as it is
 easier to navigate between the sections, however if you prefer, you can
 also print out the .pdf version.
+
+### Comments and suggestions:
 
 Comments and suggestions are welcome. If you have found a bug in the
 case study code, please raise an issue about it
