@@ -1,51 +1,14 @@
----
-title: "Outbreak Investigation Module (OIM)" 
-subtitle: "Mapping in R: coding template"
-date: "`r format(Sys.Date(), format = '%d %B %Y')`"
-output: html_document
-theme: sandstone
-geometry: margin = 1.5cm
-urlcolor: blue
-always_allow_html: true
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, 
-                      eval = TRUE,
-                      message = FALSE, 
-                      warning = FALSE, 
-                      ft.align = "left",
-                      fig.width = 12,
-                      out.width = "100%")
-```
-
-
-\newpage
-
-------------------------------------------------------------------------
-
-# Introduction
-
-This R markdown template is the workbook companion to the **Mapping in R: STEC raw milk case study**. The code chunks from the case study guide have been replicated here with minimal text. Participants should use this coding template to explore each code chunk and modify the code as needed in order to answer the questions in the case study guide.
-
-
-### Installing R packages
-
-```{r package_installs}
+## ----package_installs---------------------------------------------------------
 
 ##################################################################
-# INSTALL PACMAN PACKAGE
+# INSTALL PACKAGES
 
 # Check if the 'pacman' package is installed, if not install it:
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
 
 
-```
 
-
-### Loading libraries
-
-```{r package_loading}
+## ----package_loading----------------------------------------------------------
 
 ##################################################################
 # LOAD LIBRARIES
@@ -63,16 +26,8 @@ pacman::p_load(rio,
                leaflet,
                htmlwidgets)
 
-```
 
-
-### Import data
-
-
-**Importing case and population data**
-
-
-```{r import csv files}
+## ----import csv files---------------------------------------------------------
 
 ###########################################################################
 # Import outbreak case linelist
@@ -99,12 +54,8 @@ region_pop <- rio::import(file = here("data",
   # Clean variable names: 
   janitor::clean_names()
 
-```
 
-
-**Importing shape files for health regions:**
-
-```{r import shape files}
+## ----import shape files-------------------------------------------------------
 
 # Import the shape files for 9 health regions (called PHEC or PHE Centres): 
 region_sf <- sf::st_read(dsn = here("shapefiles", "En_PHE_Centre.shp")) %>% 
@@ -112,23 +63,13 @@ region_sf <- sf::st_read(dsn = here("shapefiles", "En_PHE_Centre.shp")) %>%
   # Clean variable names:
   janitor::clean_names()
 
-```
 
-
-**Transform coordinate reference system (CRS) to latitude and longitude:**
-
-
-```{r}
+## -----------------------------------------------------------------------------
 
 region_sf <- sf::st_transform(x = region_sf, crs = 4326)
 
-```
 
-
-### Calculate crude incidence rates
-
-
-```{r calculate incidence}
+## ----calculate incidence------------------------------------------------------
 
 # Create the table of summary counts of cases by PHE Centre:
 incidencetab <- caselist %>% 
@@ -151,25 +92,8 @@ incidencetab <- incidencetab %>%
 region_sf <- region_sf %>% 
   left_join(incidencetab, by = "phecnm")
 
-```
 
-**Exploratory tasks:**
-
-   + Inspect the `incidencetab` data.frame after each command to check what has changed
-
-   + Try piping together all the commands to create the incidence table 
-   + (hint: they are currently separated to make it easier to interogate each step)
-
-   + Try rounding crude incidence to more or fewer decimal points
-   + (hint: this is specified in `mutate(Incidence = round(..., 2))`).
-
-
-### Importing map tiles from a web service
-
-
-**Boundary box for map of UK**
-
-```{r boundary box UK}
+## ----boundary box UK----------------------------------------------------------
 
 # First, define the boundaries of the map you want to import:
 ukbb <- osmdata::getbb(place_name = "United Kingdom", featuretype = "country")
@@ -184,12 +108,8 @@ ukmap <- ggmap::get_map(location = ukbb,
 ggmap(ukmap)
 
 
-```
 
-
-**Boundary box for map of England:**
-
-```{r boundary box England}
+## ----boundary box England-----------------------------------------------------
 
 # First, define the boundaries of the map you want to import:
 englandbb <- osmdata::getbb(place_name = "England", featuretype = "settlement")
@@ -203,12 +123,8 @@ englandmap <- ggmap::get_map(location = englandbb,
 # Have a quick look at the base map:
 ggmap(englandmap)
 
-```
 
-
-**Boundary box defined by data limits:**
-
-```{r boundary box case coordinates}
+## ----boundary box case coordinates--------------------------------------------
 
 # First define the boundary box with case coordinates:
 cbbox <- ggmap::make_bbox(lon = home_long,
@@ -225,23 +141,8 @@ coordinatesmap <- ggmap::get_map(location = cbbox,
 # Have a quick look at the base map:
 ggmap(coordinatesmap)
 
-```
 
-**Exploratory tasks:**
-
-Note that when defining the boundary box, the `f` value (fraction by which the range should be extended beyond the minimum and maximum coordinates) will affect the zoom level of the map.  A higher resolution map will also include more place names at a lower administrative level.
-
-   + Try changing the `f` value and see what looks best
-   + Choose the base map that you think best defines the area of interest
-   + (use this base map in the next section)
-
-
-
-### Adding layers to map tiles:
-
-**Point map with web tiles:**
-
-```{r point map with web tiles}
+## ----point map with web tiles-------------------------------------------------
 
 # Fetch the selected base map tiles:
 pointmap_web <- ggmap::ggmap(coordinatesmap, 
@@ -266,12 +167,8 @@ pointmap_web <- ggmap::ggmap(coordinatesmap,
 # Have a look at the map:
 pointmap_web  
 
-```
 
-
-**Saving static maps:**
-
-```{r}
+## -----------------------------------------------------------------------------
 
 # Save the map as a .pdf
 ggplot2::ggsave(filename = "Map of cases - static.pdf", 
@@ -281,25 +178,8 @@ ggplot2::ggsave(filename = "Map of cases - static.pdf",
               dpi = 300)
 
 
-```
 
-
-**Exploratory tasks:**
-
-In the example code in this tutorial, we have only used one of the three addresses available for cases (their residence address, defined by `home_long` and `home_lat`).  The other two geocoded addresses available are for locations cases traveled to on a day trip (`travel_long` and `travel_lat`) and the location of likely exposure to the contaminated raw milk (`exposure_lat` and `exposure_long` - note this is a composit of the other two addresses).
-
-   + Try recreating this case map, but use the exposure coordinates instead
-   + (hint: change the x and y variables in the aes)
-   + Repeat the case map again, but using the UK travel coordinates instead
-   + Which coordinates do you think are most informative?
-
-
-
-### Using shape files as the base map
-
-**Shape file point map**
-
-```{r point map with shape files}
+## ----point map with shape files-----------------------------------------------
 
 # Plot an empty frame:
 pointmap_sf <- ggplot2::ggplot() + 
@@ -329,25 +209,8 @@ pointmap_sf <- ggplot2::ggplot() +
 # View the map:
 pointmap_sf
 
-```
 
-
-**Exploratory tasks:**
-
-In this map, we first started with the shapefile layer, where we specified how we would like the base map to look (colour and thickness of region borders, fill colour and transparency).
-
-   + Try changing the base map fill colour and transparency (alpha)
-   + (hint: change the parameters in `geom_sf`)
-   + Select the background map and points colour and transparency levels that work best.
-
-
-## Stratified maps
-
-### Stratifying by aesthetic attributes
-
-**Stratified point map with web tiles:**
-
-```{r stratified point map with web tiles}
+## ----stratified point map with web tiles--------------------------------------
 
 # Create the base map from selected OpenStreetMap tiles:
 stratamap_web <- ggmap::ggmap(coordinatesmap, 
@@ -381,13 +244,8 @@ stratamap_web <- ggmap::ggmap(coordinatesmap,
 stratamap_web  
 
 
-```
 
-
-**Stratified point map with shape files:**
-
-
-```{r stratified point map with shape files}
+## ----stratified point map with shape files------------------------------------
 
 # Plot an empty frame:
 stratamap_sf <- ggplot2::ggplot() + 
@@ -425,27 +283,8 @@ stratamap_sf <- ggplot2::ggplot() +
 stratamap_sf
 
 
-```
 
-
-
-**Exploratory tasks:**
-
-In the two stratified maps, we specified how the points should look, with the `colour` (of shape border), `size`, `shape`, and `alpha` (transparency level of fill colour) arguments.  We also specified exactly which colours to use for the stratified variable with `scale_fill_manual()`. You can find more information about the different formatting options for points and other ggplot features by typing `vignette("ggplot2-specs")` in your R console (the vignette will open in the help pane of RStudio).
-
-   + Try changing the `alpha` (transparency) - what effect does it have on overlapping points?
-   + Try changing the `shape` to `circle` - what happens to the border colour of the points?
-   + Try changing the variables to stratify on - what else could be interesting?
-   + (hint: change the fill variable in aes)
-   + (hint: make sure you provide enough colours for each factor level in `scale_fill_manual`)
-   + (hint: change the title of the legend in `labs(fill = ...)`)
-
-
-### Stratifying with facets:
-
-**Faceted time series maps:**
-
-```{r stratified point map time series}
+## ----stratified point map time series-----------------------------------------
 
 # Facet the stratified shape file map by year:
 tsmap <- stratamap_sf + facet_wrap(~year, 
@@ -456,31 +295,8 @@ tsmap <- stratamap_sf + facet_wrap(~year,
 # View the maps:
 tsmap
 
-```
 
-
-**Exploratory tasks:**
-
-For this time series, we created a map for each year of the outbreak, but it may also be useful to stratify (facet) the maps by other variables.
-
-   + Try faceting with a different variable from `caselist`
-   + (hint: variable should have a limited number of factor levels)
-   + (hint: change the variable name after the tilde in `facet_wrap(~...)`)
-   + Try changing the layout of the facets to two columns and three rows
-   + (hint: change the `ncol = ...` value inside the facet_wrap command)
-   + (hint: add another argument `nrow = ...` inside the facet_wrap command)
-
-
-
-
-## Density maps
-
-
-### Contour and heat maps
-
-**1. Contour map:**
-
-```{r contourmap of case counts}
+## ----contourmap of case counts------------------------------------------------
 
 # Create an empty frame:
 contourmap <- ggplot2::ggplot() + 
@@ -502,21 +318,8 @@ contourmap <- ggplot2::ggplot() +
 # View the contour map:
 contourmap
 
-```
 
-
-**Exploratory tasks:**
-
-Note that the `alpha` argument inside the aes of `geom_density2d()` is using the density calculated by this function to set the transparency levels of the lines, with lines becoming stronger and less transparent the more dense the number of cases are.  Alternatively you can set it to a static value, like `0.5` which will make the transparency of the line equivalent to the midpoint of the densities on a scale from 0.1 (lowest density) to 1 (highest density).
-
-   + Try varying the alpha argument inside `geom_density2d()` - what effect does this have?
-     - (hint: change `alpha = ..level..` to `alpha = 0.5` for example)
-
-
-**2. Heatmap:**
-
-
-```{r heatmap of case counts}
+## ----heatmap of case counts---------------------------------------------------
 
 # Create an empty frame:
 heatmap <- ggplot2::ggplot() + 
@@ -549,29 +352,8 @@ heatmap <- ggplot2::ggplot() +
 # View the heatmap with colour levels:
 heatmap
 
-```
 
-
-**Exploratory tasks:**
-
-This map is quite similar to the previous one, but we have an extra option `bins` in the `stat_density2d()` function that we can use to control at what resolution case density is displayed.  
-
-   + Try changing the `bins` argument in `stat_density2d()` - what effect does this have?
-     - (hint: set `bins = 20` for example and compare with the previous map)
-   + What is the danger of using a bins value that is too high for the data?
-   + What is the danger of using a bins value that is too low for the data?
-   + How would you calculate an appropriate bins number?
-     - (hint: use the number of cases per region in the incidence table)
-   
-   + Try changing the colours that represent low and high density values
-     - (hint: change the values for `low` and `high` in `scale_fill_gradient()`)
-
-
-
-### Choropleth maps
-
-
-```{r choropleth map of incidence}
+## ----choropleth map of incidence----------------------------------------------
 
 # Create the choropleth map with shape file and incidence data:
 cimap <- ggplot2::ggplot(region_sf) + 
@@ -600,27 +382,8 @@ cimap <- ggplot2::ggplot(region_sf) +
 # View the map:
 cimap
 
-```
 
-
-**Exploratory tasks:**
-
-This map is similar to the heat map in that darker colours (if you set them that way) are indicative of higher incidence.  However, this time we are adjusting for population density by using incidence per 100 000 population, and we are also restricting the colour changes to be within the bounds of the 9 regions.  
-
-The heat map showed graduated differences between smaller areas that were estimated from the data, while this choropleth map shows discrete relative differences between regions, based on region-aggregated incidence.  As with the contour and heat maps, the number of bins (this time called `breaks`) will have an impact on how the incidence rates are displayed on the map.
-
-   + Try reversing the order of the colours - what effect does this have?
-     - (hint: change the `direction` argument to `-1` in `scale_fill_distiller()`)
-   + Try increasing the number of breaks to 16 - what effect does this have?
-     - (hint: change the number in the `breaks` argument of `scale_fill_distiller()`)
-   
-
-
-### Interactive maps
-
-**Leaflet cluster map:**
-
-```{r interactive map}
+## ----interactive map----------------------------------------------------------
 
 # Create the interactive map:
 clustermap <- leaflet() %>% 
@@ -644,43 +407,16 @@ clustermap <- leaflet() %>%
 # View the map:
 clustermap
 
-```
 
-
-**Saving the interactive cluster map:**
-
-
-```{r save html map}
+## ----save html map------------------------------------------------------------
 
 # Save the map:
 htmlwidgets::saveWidget(widget = clustermap, 
                         file = "Map of cases - interactive.html")
 
 
-```
 
-
-
-**Exploratory tasks:**
-
-This interactive map also aggregates cases by density, but unlike the contour maps, heat maps and choropleth maps, we have less control over how much or in what way the data are being aggregated at each zoom level.  On the other hand, we can control how much the viewer can disaggregate the data.
-
-   + Try changing the `maxZoom` level so that viewers cannot see individual buildings
-     - (hint: reduce the number in `addTiles(options = tileOptions(maxZoom = ...))`)
-   + Try changing some of the aesthetics (e.g. width of the region border lines)
-     - (hint: change the `weight` argument in `addPolygons`)
-
-
-------------------------------------------------------------------------
-
-# Appendix
-
-## A. Postcode cleaning
-
-
-**Regular expression function to format UK postcodes:**
-
-```{r add_space function}
+## ----add_space function-------------------------------------------------------
 
 # Function to ensure space between incode and outcode in postcodes:
 add_space <- function(postcodevar){
@@ -701,13 +437,8 @@ add_space <- function(postcodevar){
 }
 
 
-```
 
-
-**Applying the function to clean postcodes:**
-
-
-```{r clean postcodes}
+## ----clean postcodes----------------------------------------------------------
 
 ###############################################################################
 # Read in the raw data set (where postcodes are not in the correct format):
@@ -725,17 +456,8 @@ caselist <- rio::import(file = here("data", "CaseStudy_RDM_anon_data.csv")) %>%
   # Correct the format of the exposure location postcodes:
   mutate(postcode_exposure = add_space(postcode_exposure))
 
-```
 
-
-
-
-## B. Geocoding
-
-
-**Prepare data set for geocoding:**
-
-```{r add_country}
+## ----add_country--------------------------------------------------------------
 
 # Import the raw data (contains clean postcodes but the are not yet geocoded):
 caselist <- rio::import(file = here("data", 
@@ -744,33 +466,30 @@ caselist <- rio::import(file = here("data",
   # Create a new column with the country name for the addresses to be geocoded:
   mutate(country = "UK")
 
-```
 
-**Perform geocoding:**
+## ----geocode, eval=FALSE------------------------------------------------------
+#  # Use the residential (home) postcodes and country to fetch geocoordinates:
+#  caselist <- caselist %>%
+#  
+#    # Geocode case residence postcodes:
+#    tidygeocoder::geocode(postalcode = postcode_home,
+#                          country = country,
+#                          method = "osm",
+#                          lat = "home_lat",
+#                          long = "home_long") %>%
+#  
+#    # Geocode case UK travel (day trip) postcodes:
+#    tidygeocoder::geocode(postalcode = postcode_uk_travel,
+#                          country = country,
+#                          method = "osm",
+#                          lat = "travel_lat",
+#                          long = "travel_long") %>%
+#  
+#    # Geocode case exposure location postcodes:
+#    tidygeocoder::geocode(postalcode = postcode_exposure,
+#                          country = country,
+#                          method = "osm",
+#                          lat = "exposure_lat",
+#                          long = "exposure_long")
+#  
 
-```{r geocode, eval=FALSE}
-# Use the residential (home) postcodes and country to fetch geocoordinates:
-caselist <- caselist %>% 
-  
-  # Geocode case residence postcodes:
-  tidygeocoder::geocode(postalcode = postcode_home, 
-                        country = country, 
-                        method = "osm", 
-                        lat = "home_lat", 
-                        long = "home_long") %>% 
-  
-  # Geocode case UK travel (day trip) postcodes:
-  tidygeocoder::geocode(postalcode = postcode_uk_travel, 
-                        country = country, 
-                        method = "osm", 
-                        lat = "travel_lat", 
-                        long = "travel_long") %>%
-  
-  # Geocode case exposure location postcodes:
-  tidygeocoder::geocode(postalcode = postcode_exposure, 
-                        country = country, 
-                        method = "osm", 
-                        lat = "exposure_lat", 
-                        long = "exposure_long")
-
-```

@@ -4,15 +4,16 @@ subtitle: "Mapping in R: STEC raw milk case study"
 author: "Amy Mikhail"
 date: "`r format(Sys.Date(), format = '<br/>Updated on %d %B %Y')`"
 output:
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_float:
+      toc_collapsed: no
+      smooth_scroll: yes
+    toc_depth: 2
   pdf_document:
     toc: true
     toc_depth: 3
-  html_document:
-    code_folding: hide
-    toc: true
-    toc_float:
-      toc_collapsed: false
-    toc_depth: 1
   word_document:
     toc: true
     toc_depth: 3
@@ -25,7 +26,12 @@ urlcolor: blue
 always_allow_html: true
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, purl=FALSE}
+
+# Output to R script:
+knitr::knit_hooks$set(purl = knitr::hook_purl)
+
+# Set chunk options:
 knitr::opts_chunk$set(echo = TRUE, 
                       eval = TRUE,
                       message = FALSE, 
@@ -36,7 +42,7 @@ knitr::opts_chunk$set(echo = TRUE,
 ```
 
 
-```{r restrict output, echo=FALSE}
+```{r restrict output, echo=FALSE, purl=FALSE}
 
 ################################################################
 # FUNCTION TO RESTRICT RESULTS TO A FEW LINES OF OUTPUT:
