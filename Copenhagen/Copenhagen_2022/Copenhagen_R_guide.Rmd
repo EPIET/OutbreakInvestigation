@@ -27,7 +27,10 @@ urlcolor: blue
 always_allow_html: yes
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, purl=FALSE}
+
+# Output to R script:
+knitr::knit_hooks$set(purl = knitr::hook_purl)
 
 # Set chunk options:
 knitr::opts_chunk$set(echo = TRUE, 
@@ -49,7 +52,7 @@ library(bookdown)
 ```
 
 
-```{r restrict output, echo=FALSE}
+```{r restrict output, echo=FALSE, purl=FALSE}
 
 ################################################################
 # FUNCTION TO RESTRICT RESULTS TO A FEW LINES OF OUTPUT:
@@ -275,20 +278,19 @@ To work through this tutorial, you will need:
 ### Case study pack
 
 All the materials required for this case study are included in a zipped (compressed) folder.
-You can download the case study folder from EVA, or alternatively from the online repository for the [Outbreak Investigation Module R materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Copenhagen/Copenhagen_R_casestudy.zip).
+You can download the case study folder from EVA, or alternatively from the online repository for the [Outbreak Investigation Module R materials](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_casestudy.zip).
 
 The folder should be unzipped to your desktop or to another suitable location on your own computer.  It contains the following sub-folders:
 
    + `data` - data sets (.csv files) that you will need for this case study;
-      + `Copenhagen_raw.csv`
-      + `Copenhagen_clean.csv`
-   + `guide` - this document in html and pdf formats
+      + `Copenhagen_raw.csv` - the raw data set
+   + `guide` - this document in html format
    + `rcode` - R code files;
-      + `packages2install.R` script for installing required packages
-      + `Copenhagen_R_template.Rmd` R markdown code template for this case study
+      + `Copenhagen_pkgs2install.R` - package install script
+      + `Copenhagen_R_template.R` R script for this case study
    + `Copenhagen_2022.Rproj` R project file
 
-We recommend that you use the HTML version of this R guide (which will open in your internet browser) as it is easier to navigate between the sections.  You may either open it off-line from the `guide` folder, or alternatively follow it online from [this link](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_guide_2022.html).
+We recommend that you use the HTML version of this R guide (which will open in your internet browser) as it is easier to navigate between the sections.  You may either open it off-line from the `guide` folder, or alternatively follow it online from [this link](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_guide.html).
 
 
 ### Installing R packages
@@ -331,7 +333,7 @@ To install these packages for the first time, we recommend that you begin with t
    3. Go to the `Session` menu at the top of the RStudio pane and select `Restart R`
    4. Go to the `File` menu at the top of the RStudio pane and select `Open file...`
    5. In the dialogue box that opens, browse to the case study folder on your computer
-   6. Select and open `packages2install.R`
+   6. Select and open `Copenhagen_pkgs2install.R`
    7. Highlight the entire script and click the `Run` button at the top right of the script
    8. Wait until all the packages have installed (takes several minutes)
    9. If you encounter any problems, please ask a facilitator for help.
@@ -413,11 +415,13 @@ In this section of the case study you will learn:
 
 ### Load packages {#load-pkgs}
 
-In this section, you will become familiar with the provided materials and data sets.  To get started, navigate to the `Copenhagen_R_casestudy` folder that contains the materials for this case study. Open RStudio by double-clicking on the `Copenhagen_2022.Rproj` (R project) file that you will find in the root of this folder.
+In this section, you will become familiar with the provided materials and data sets.  To get started, navigate to the `Copenhagen_R_casestudy` folder that contains the materials for this case study. 
+
+Open RStudio by double-clicking on the `Copenhagen_2022.Rproj` (R project) file that you will find in the root of this folder.
 
 If you click on the `Files` pane on the lower right panel of RStudio, you should now be able to see the contents of this folder. 
 
-Within this panel, click on `Copenhagen_R_template.Rmd` to open it in your RStudio window.  This is an R markdown file that contains the code demonstrating each step of this case study. You can use this file to adapt and modify the code in order to answer the questions for each section.
+Within this panel, click on `Copenhagen_R_template.R` to open it in your RStudio window.  This is an R script that contains all the code demonstrating each step of this case study. You can use this script to adapt and modify the code in order to answer the questions for each section, and as a record of your work.
 
 
 **R coding tips:**

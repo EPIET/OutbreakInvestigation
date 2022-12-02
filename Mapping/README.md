@@ -4,26 +4,29 @@ EPIET case studies: R guides
 
 -   <a href="#overview" id="toc-overview">Overview</a>
     -   <a href="#school-dinner-case-study"
-        id="toc-school-dinner-case-study">School dinner case study:</a>
+        id="toc-school-dinner-case-study">School dinner case study</a>
+    -   <a href="#social-network-analysis-practical"
+        id="toc-social-network-analysis-practical">Social network analysis
+        practical</a>
     -   <a href="#mapping-case-study" id="toc-mapping-case-study">Mapping case
-        study:</a>
-    -   <a href="#note-on-r-guides" id="toc-note-on-r-guides">Note on R
-        guides:</a>
+        study</a>
+-   <a href="#github-repository" id="toc-github-repository">Github
+    repository</a>
+    -   <a href="#contributing" id="toc-contributing">Contributing</a>
     -   <a href="#comments-and-suggestions"
-        id="toc-comments-and-suggestions">Comments and suggestions:</a>
+        id="toc-comments-and-suggestions">Comments and suggestions</a>
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ## Overview
 
-This
-[repository](https://github.com/EPIET/OutbreakInvestigation/tree/master/Mapping)
-hosts the R learning materials for the EPIET Outbreak Investigation
-module (OIM).
+This page hosts the R learning materials for the **EPIET Outbreak
+Investigation module (OIM)**.
 
 In particular, you will find the R materials for:
 
 -   School dinner foodborne outbreak case study (Copenhagen, Denmark)
+-   Social network analysis practical exercise
 -   Unpasteurised milk geospatial analysis and mapping case study (UK)
 
 Credits go to the original authors of the case studies, as well as the
@@ -37,7 +40,7 @@ conditions](https://github.com/EPIET/OutbreakInvestigation/blob/master/LICENSE)
 before using or distributing this case study. Additional details on
 distrubution are also included in the case study guides.
 
-### School dinner case study:
+### School dinner case study
 
 To follow the Copenhagen school dinner case study, you will need:
 
@@ -48,7 +51,14 @@ To follow the Copenhagen school dinner case study, you will need:
     guide](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_guide.html)
     (online version)
 
-### Mapping case study:
+### Social network analysis practical
+
+To follow the social network analysis practical, you will need:
+
+-   [R Social network analysis practical materials
+    folder](https://epiet.github.io/OutbreakInvestigation/Network_analysis_practical.zip)
+
+### Mapping case study
 
 To follow the UK mapping case study, you will need:
 
@@ -59,19 +69,23 @@ To follow the UK mapping case study, you will need:
     guide](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html)
     (online version)
 
-### Note on R guides:
+## Github repository
 
-The guide is also available as a HTML and .pdf file in the `guide`
-sub-directory of the case study materials pack. We recommend that you
-use the HTML version of this guide (either online or off-line) as it is
-easier to navigate between the sections, however if you prefer, you can
-also print out the .pdf version.
+### Contributing
 
-### Comments and suggestions:
+The R code for the case study guides and practical materials on this
+page are hosted on the [Outbreak Investigation Module Github
+repository](https://github.com/EPIET/OutbreakInvestigation/tree/master/Mapping).
+Suggestions and updates are welcome; please check out your own branch to
+commit the updates and then submit a pull request. Write access to the
+repository can be provided on request.
+
+### Comments and suggestions
 
 Comments and suggestions are welcome. If you have found a bug in the
-case study code, please raise an issue about it
-[here](https://github.com/EPIET/OutbreakInvestigation/issues), clearly
+case study code, please raise an issue about it on the [Outbreak
+Investigation Module GitHub repository issues
+page](https://github.com/EPIET/OutbreakInvestigation/issues), clearly
 stating the nature of the problem and providing a reproducible example.
 You can also use the **issues** page to suggest new features or topics
 to cover in a future version.
