@@ -1,6 +1,6 @@
 EPIET case studies: R guides
 ================
-29 November 2022
+02 December 2022
 
 -   <a href="#overview" id="toc-overview">Overview</a>
     -   <a href="#school-dinner-case-study"
@@ -42,7 +42,7 @@ distrubution are also included in the case study guides.
 To follow the Copenhagen school dinner case study, you will need:
 
 -   [R Copenhagen case study
-    materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Copenhagen/Copenhagen_R_casestudy.zip)
+    materials](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_casestudy.zip)
     (contains data sets, case study guide and R coding template)
 -   [R Copenhagen case study
     guide](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_guide.html)
@@ -53,7 +53,7 @@ To follow the Copenhagen school dinner case study, you will need:
 To follow the UK mapping case study, you will need:
 
 -   [R mapping cases study
-    materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Mapping/Mapping_R_casestudy.zip)
+    materials](https://epiet.github.io/OutbreakInvestigation/Mapping_R_casestudy.zip)
     (contains data sets, case study guide and R coding template)
 -   [R mapping case study
     guide](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html)

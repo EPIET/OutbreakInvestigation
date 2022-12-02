@@ -35,7 +35,7 @@ These case studies are covered by a Gnu General Public Licence version 3 (GPL-3)
 
 To follow the Copenhagen school dinner case study, you will need:
 
-   + [R Copenhagen case study materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Copenhagen/Copenhagen_R_casestudy.zip) (contains data sets, case study guide and R coding template)
+   + [R Copenhagen case study materials](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_casestudy.zip) (contains data sets, case study guide and R coding template)
    + [R Copenhagen case study guide ](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_guide.html) (online version)
 
 
@@ -43,7 +43,7 @@ To follow the Copenhagen school dinner case study, you will need:
 
 To follow the UK mapping case study, you will need:
 
-   + [R mapping cases study materials](https://github.com/EPIET/OutbreakInvestigation/raw/master/Mapping/Mapping_R_casestudy.zip) (contains data sets, case study guide and R coding template)
+   + [R mapping cases study materials](https://epiet.github.io/OutbreakInvestigation/Mapping_R_casestudy.zip) (contains data sets, case study guide and R coding template)
    + [R mapping case study guide ](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html) (online version)
 
 
