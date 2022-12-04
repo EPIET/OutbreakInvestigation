@@ -3,15 +3,33 @@ title: "An outbreak of Campylobacter jejuni in Greece"
 author: "Patrick Keating and Alexander Spina"
 date: "29 June 2017"
 output:
-  word_document: default
-  pdf_document: default
   html_document: 
       toc: yes
       toc_float:
         collapsed: no
         smooth_scroll: yes
+  pdf_document: default
+  word_document: default
 geometry: margin=1.5cm
 ---
+
+```{r setup, include=FALSE, purl=FALSE}
+
+# Output to R script:
+knitr::knit_hooks$set(purl = knitr::hook_purl)
+
+# Set chunk options:
+knitr::opts_chunk$set(echo = TRUE, 
+                      eval = TRUE,
+                      message = FALSE, 
+                      warning = FALSE, 
+                      ft.align = "left",
+                      fig.width = 12,
+                      out.width = "100%")
+
+```
+
+
 
 **Contributors to *R* code:**  
 Daniel Gardiner (PHE) and Lukas Richter (AGES)
@@ -65,18 +83,27 @@ We will mainly use packages which come ready installed with R (base code), but w
 
 Run the following code at the beginning of the day to make sure that you have made available all the packages and functions that you need. Be sure to include it in any scripts too.
 
-```{r, echo = TRUE, results='hide', message=FALSE, warning=FALSE}
-# Loading required packages for the week
-library(ggplot2)
-library(foreign)
-library(Hmisc)
-library(epiR)
-library(knitr)
+```{r load_packages, results='hide'}
+
+# Check if the 'pacman' package is installed, if not install it:
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
+
+# Load required packages with pacman:
+pacman::p_load(rio,
+               here,
+               Hmisc,
+               epiR,
+               epitools,
+               ggplot2,
+               scales,
+               ISOweek,
+               knitr)
+
 ```
 
-Note:  This code assumes the packages are already installed. You only need to install a package once. If this code does not work, try installing the packages using the code below.
+Note:  This code uses the `pacman::p_load()` function, which will check to see if the packages are already in your R library, and if not found, install them. After any missing packages are installed, `pacman::p_load()` also loads the packages into your R session, so that the functions within them will be available for you to use. If this code does not work, try installing the packages one by one using the code below.
 
-```{r, eval = F}
+```{r install_packages, eval = FALSE}
 install.packages("package name in quotation makrs")
 ```
 
@@ -89,28 +116,28 @@ R and Stata have minor differences in default settings and methods. In this docu
 There are two functions you will need to use in this session. You can use them once you've set the working directory. The **epicurve** function allows creation of easily formatted epicurves. To find out more about the function, first load it as above and then click on function in the **Global Environment** tab on the right of the R Studio window. The **single variable analysis** function allows calculation of attack rates of multiple variables at one time and provides similar output to the cctable and cstable commands in Stata.
 
 
-```{r}
+```{r source_functions}
 #These scripts need to be present in your working directory
 
 # Adds a function to create epicurves
-source("epicurve.v.1.8.R") 
+source(here::here("rscripts", "epicurve.v.1.8.R")) 
 
 # Adds a function to create output similar to cctable or cstable in Stata
-source("single.variable.analysis.v0.2.R") 
+source(here::here("rscripts", "single.variable.analysis.v0.2.R")) 
 ```
 
 ## Reading in your dataset
 You will work with Stata.dta data sets which can be loaded into R with the "foreign" or "readstata13" packages. You can read in the Stata dataset to R using the foreign package and its read.dta function.
 
-```{r}
-campy <- read.dta("campy.dta", convert.factors = FALSE)
+```{r import_data}
+campy <- rio::import(here::here("data", "campy.dta"))
 ```
 
 
 ## Browsing your dataset 
 *R studio* has the nice feature that everything is in one browser window, so you can browse your dataset and your code without having to switch between browser windows. 
 
-```{r, eval=F}
+```{r view_data, eval=F}
 # to browse your data, use the View command
 View(campy)
 ```
@@ -122,7 +149,7 @@ Alternatively, you can also view your dataset by clicking on **campy** in the to
 ## Task 2. How many observations does your dataset have? How many cases and how many controls does it contain?
 ### Help, Task 2
 You can browse the dataset in order to see how it looks like and how many variables it includes. An indirect way of looking how many observations your dataset contains is the **table** command. You can use it for a single variable along with the option **useNA = "always"** to make sure that the missing values are also displayed in the output.  
-```{r, eval=F}
+```{r tabulate_data, eval=F}
 # View  data set
 View(campy)
 
@@ -139,7 +166,7 @@ table(campy$case, useNA = "always")
 ### Describing your dataset 
 You can view the structure of your data set using the following commands. Each of these commands can be run for individual variables also. You can refer to an individual variable of a data set by using the **$**, for example, if you wanted to obtain a summary of the age variable, then you would write **summary(campy\$age)**.  
 
-```{r, eval=F}
+```{r summarise_data, eval=F}
 # str provides an overview of the number of observations and variable types
 str(campy)
 
@@ -156,7 +183,7 @@ describe(campy)
 ## Task 4. Can you think of any variables you could generate based on the ones you already have?
 ### Help, Task 4
 Both powder milk and concentrated milk are types of milk that need to be diluted with water. For this reason, it may be of interest to combine the two to a single variable. We can use the same logic of if statements in Excel to create this new variable. The **|** below stands for **or**. For example:  
-```{r}
+```{r recode_diluted}
 campy$diluted <- ifelse(campy$concentrated == 1 | campy$powder == 1, 1, 0)
 ```
 
@@ -167,7 +194,7 @@ To see if the age distribution between cases and controls differs (which you mig
 
 The Shapiro-Wilk test is a normality test. Its null hypothesis is that the normal distribution is followed. Hence, a p-value below your alpha (usually 0.05) means that the normal distribution is not followed. To test whether the age distribution is normal among both cases and controls, you can run:  
 
-```{r}
+```{r normality_test}
 shapiro.test(campy$age)
 ```
 
@@ -175,7 +202,7 @@ You can also visualise the distribution of age among cases and controls.
 
 Below we use the qplot function from the package ggplot2 and create histograms of the age of cases and controls. We can specify labels for the x-axis and y-axis as well as titles.
 
-```{r}
+```{r histogram_cases}
 age_hist_cases <- qplot(campy$age[campy$case == 1],
                        xlab = "Age",
                        ylab = "Count",
@@ -184,7 +211,7 @@ age_hist_cases <- qplot(campy$age[campy$case == 1],
 age_hist_cases
 ```
 
-```{r warning=FALSE}
+```{r histogram_controls}
 age_hist_controls <- qplot(campy$age[campy$case == 0],
                        xlab = "Age",
                        ylab = "Count",
@@ -196,14 +223,14 @@ age_hist_controls
 Age does not appear to be very normally distributed.  
 
 Now that you are absolutely sure that the hypothesis of normality in the variable age is not really the case, you choose to run Wilcoxon's ranksum test:  
-```{r}
+```{r wilcox_age_case}
 wilcox.test(age ~ case, data = campy)
 ```
 
 If you had gone for the t-test, the command would have been:  
 
-```{r, eval=F}
-t.test(age~case, var.equal = TRUE, data = campy)
+```{r ttest_age_case}
+t.test(age ~ case, var.equal = TRUE, data = campy)
 ```
 
 Note: The null hypothesis in both t-test and Wilcoxon's ranksum test is that the mean (or median, respectively) of the continuous variable (age) does not differ between the two groups of your dichotomous variable case (cases and controls). P-values lower than your alpha suggest you should consider that age differs between cases and controls.
@@ -211,11 +238,18 @@ Note: The null hypothesis in both t-test and Wilcoxon's ranksum test is that the
 We would also like to construct an **epidemic curve**. We can use the previously loaded epicurve function (created by Daniel Gardiner FETP fellow from C2015). This function is very flexible and can be adapted to a variety of different data formats. You can read about all the different elements of this function by clicking on the funcion in the Global environment.
 
 You can now format the epicurve in terms of the time period (day, week, month, quarter etc), the start and stop date, labels and more.  
-```{r message=FALSE, warning=FALSE}
-epicurve_campy <- epicurve(campy, date.col = "datesym", time.period = "day",
-                start.at = "2009-05-25", stop.at = "2009-06-15",
-                xlab = "Date of symptom onset", ylab = "Count",
-                col.pal = 4, label.breaks = 0, epi.squares = TRUE, na.rm = TRUE)
+```{r epicurve}
+epicurve_campy <- epicurve(campy, 
+                           date.col = "datesym", 
+                           time.period = "day", 
+                           start.at = "2009-05-25", 
+                           stop.at = "2009-06-15",
+                           xlab = "Date of symptom onset", 
+                           ylab = "Count",
+                           col.pal = 4, 
+                           label.breaks = 0, 
+                           epi.squares = TRUE, 
+                           na.rm = TRUE)
 
 # As epicurve_campy is a ggplot object, it is possible to tailor it as desired
 epicurve_campy <- epicurve_campy +
@@ -238,9 +272,26 @@ The appropriate measure of impact for a case-control study is the odds ratio (OR
 
 In order to use the epi.2by2 function, we first need to convert the outcome and exposure variables into factor/categorical variables to facilitate interpretation.  
 
-```{r}
+```{r factorise_variables}
 # We list the outcome/exposure variables
-vars <- c("case", "sex", "supply", "tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "microwave2", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+vars <- c("case", 
+          "sex", 
+          "supply", 
+          "tap", 
+          "bottled", 
+          "filter", 
+          "well", 
+          "pacifier1", 
+          "pacifier2", 
+          "dishwasher", 
+          "microwave1", 
+          "microwave2", 
+          "breastfeeding", 
+          "concentrated", 
+          "powder", 
+          "freshmilk", 
+          "dilutetap", 
+          "diluted")
 
 
 # Convert all of those variables to factor variables and re-order the levels to aid interpretation
@@ -251,7 +302,7 @@ for (var in vars) {
 
 The epi.2by2 function can be used to calculate both RRs and ORs and you can find out more information on the function by writing **?epi.2by2** in the console. The epi.2by2 function requires data to be in a table format and we specify that we want to calculate ORs by adding **method = "case.control"** as below. You can do that first for the variables sex, supply and well.  
 
-```{r}
+```{r calculate_odds_ratios}
 # Create a table with exposure and outcome variables
 sex <- table(campy$sex, campy$case)
 
@@ -267,10 +318,27 @@ well <- table(campy$well, campy$case)
 uni_well <- epi.2by2(well, method = "case.control")
 uni_well
 ```
+
 Instead of looking at each variable one-by-one, we can also add the **exposure variables** in a loop and apply the epi.2by2 function to each variable of interest at one time and save the resulting outputs to a list of dataframes.    
 
-```{r,eval=F}
-vars2 <- c("sex", "supply", "tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "microwave2", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+```{r calculate_or_loop}
+vars2 <- c("sex", 
+           "supply", 
+           "tap", 
+           "bottled", 
+           "filter", 
+           "well", 
+           "pacifier1", 
+           "pacifier2", 
+           "dishwasher", 
+           "microwave1", 
+           "microwave2", 
+           "breastfeeding", 
+           "concentrated", 
+           "powder", 
+           "freshmilk", 
+           "dilutetap", 
+           "diluted")
 
 # Create an empty list to store the output of the loop
 output <- list()
@@ -293,8 +361,25 @@ In order for this function to give similar output to the cctable command, the ex
 
 **Note**: It is not possible to directly convert a factor variable to a numeric variable. You must first convert the factor variable to a character and then convert the character to a numeric variable.  
 
-```{r}
-vars <- c("case", "sex", "supply", "tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "microwave2", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+```{r factor2numeric}
+vars <- c("case", 
+          "sex", 
+          "supply", 
+          "tap", 
+          "bottled", 
+          "filter", 
+          "well", 
+          "pacifier1", 
+          "pacifier2", 
+          "dishwasher", 
+          "microwave1", 
+          "microwave2", 
+          "breastfeeding", 
+          "concentrated", 
+          "powder", 
+          "freshmilk", 
+          "dilutetap", 
+          "diluted")
 
 
 # Convert factor to character to numeric
@@ -314,16 +399,36 @@ The sva function requires definition of:
 * verbose (FALSE gives restricted output)  
   
 
-```{r, message = FALSE, warning=FALSE}
-vars2 <- c("sex", "supply", "tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "microwave2", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+```{r calculate_risk_ratios_cctable}
+vars2 <- c("sex", 
+           "supply", 
+           "tap", 
+           "bottled",
+           "filter",
+           "well", 
+           "pacifier1",
+           "pacifier2",
+           "dishwasher",
+           "microwave1",
+           "microwave2",
+           "breastfeeding",
+           "concentrated",
+           "powder",
+           "freshmilk",
+           "dilutetap", 
+           "diluted")
 
 
 # Use the sva function, specifying each element of the function
-a <- sva(campy, outcome = "case", exposures = c(vars2), measure = "or", verbose = TRUE)
+a <- sva(campy, 
+         outcome = "case", 
+         exposures = c(vars2),
+         measure = "or", 
+         verbose = TRUE)
 
 ```
 
-```{r,echo = FALSE}
+```{r convert_rr_output_to_table}
 kable(a, digits = 2)
 ```
 
@@ -337,7 +442,7 @@ Stratifying essentially means to run the same analysis as in the univariate anal
 
 We will illustrate the effect of stratification using tap as the exposure variable and supply as stratifiying variable. As we will use the **epi.2by2** function to perform the stratification, we first need to reconvert the outcome and exposure variables to factor variables.  Note: the sva function doesn't currently have a stratifying function.
 
-```{r}
+```{r factorise_variables_again}
 # The outcome and exposure variables were defined above as vars
 
 # Convert all of those variables to factor variables and re-order the levels to aid interpretation
@@ -347,7 +452,8 @@ for (var in vars) {
 ```
 
 First, we conduct the univariate analysis with **tap** as the exposure variable:  
-```{r}
+
+```{r tap_or}
 tap <- table(campy$tap, campy$case)
 uni_tap <- epi.2by2(tap, method = "case.control")
 uni_tap
@@ -355,7 +461,7 @@ uni_tap
 
 Now, we will repeat the above analysis while stratifying by water supply, where supply = 1 is for rural areas and supply = 0 is for urban areas.  
 
-```{r}
+```{r stratify_by_water}
 # Based on supply = 1
 tap1 <- table(campy$tap[campy$supply == 1], campy$case[campy$supply == 1])
 tap_supp1 <- epi.2by2(tap1, method = "case.control")
@@ -369,9 +475,22 @@ tap_supp0
 The above approach provides the stratum-specific ORs, which we can compare to the crude odds ratio from the univariate analysis above. However, it does not provide the Mantel-H?nszel (M-H) odds ratio. We can obtain the M-H odds ratio and loop over the exposure variables of interest by doing the following:  
 
 
-```{r}
+```{r strata_or_table}
 # Define the exposure variables to be included in the analysis
-vars4 <- c("tap", "bottled", "filter", "well", "pacifier1", "pacifier2", "dishwasher", "microwave1", "breastfeeding", "concentrated", "powder", "freshmilk", "dilutetap", "diluted")
+vars4 <- c("tap", 
+           "bottled", 
+           "filter", 
+           "well", 
+           "pacifier1", 
+           "pacifier2", 
+           "dishwasher", 
+           "microwave1", 
+           "breastfeeding", 
+           "concentrated", 
+           "powder", 
+           "freshmilk", 
+           "dilutetap", 
+           "diluted")
 
 # The variable "microwave 2" was excluded from the list of variables as it blocks the loop
 

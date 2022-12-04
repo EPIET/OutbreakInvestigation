@@ -1280,7 +1280,7 @@ stratall <- linelist %>%
                 .fns = ~ as.numeric(.)))
 
 
-## ----veal_stratifier----------------------------------------------------------
+## ----veal_stratified_csinter--------------------------------------------------
 
 # Pass data to the csinter function:
 vealstrata <- csinter(x = stratall, 
@@ -1288,17 +1288,32 @@ vealstrata <- csinter(x = stratall,
                       exposure = "pasta", 
                       by = "veal")
 
+
+## ----veal_stratum_specific_rr-------------------------------------------------
+
 # Extract second data.frame with summary results:
-vealstrata_pub <- vealstrata$df2 %>% 
+vealstrata_ssrr <- vealstrata$df1 %>% 
   
   # Convert to a flextable:
   flextable::qflextable()
 
 # Print table:
-vealstrata_pub
+vealstrata_ssrr
 
 
-## ----pasta_stratifier---------------------------------------------------------
+## ----veal_mh_adjusted_rr------------------------------------------------------
+
+# Extract second data.frame with summary results:
+vealstrata_mhrr <- vealstrata$df2 %>% 
+  
+  # Convert to a flextable:
+  flextable::qflextable()
+
+# Print table:
+vealstrata_mhrr
+
+
+## ----pasta_stratified_csinter-------------------------------------------------
 
 # Pass data to the csinter function:
 pastastrata <- csinter(x = stratall, 
@@ -1306,17 +1321,32 @@ pastastrata <- csinter(x = stratall,
                        exposure = "veal", 
                        by = "pasta")
 
+
+## ----pasta_stratum_specific_rr------------------------------------------------
+
 # Extract second data.frame with summary results:
-pastastrata_pub <- pastastrata$df2 %>% 
+pastastrata_ssrr <- pastastrata$df1 %>% 
   
   # Convert to a flextable:
   flextable::qflextable()
 
 # Print table:
-pastastrata_pub
+pastastrata_ssrr
 
 
-## ----champ_stratifier---------------------------------------------------------
+## ----pasta_mh_adjusted_rr-----------------------------------------------------
+
+# Extract second data.frame with summary results:
+pastastrata_mhrr <- pastastrata$df2 %>% 
+  
+  # Convert to a flextable:
+  flextable::qflextable()
+
+# Print table:
+pastastrata_mhrr
+
+
+## ----champ_stratified_csinter-------------------------------------------------
 
 # Pass data to the csinter function:
 champstrata <- csinter(x = stratall, 
@@ -1324,14 +1354,31 @@ champstrata <- csinter(x = stratall,
                        exposure = "champagne", 
                        by = "pasta")
 
+
+
+## ----champ_stratum_specific_rr------------------------------------------------
+
 # Extract second data.frame with summary results:
-champstrata_pub <- champstrata$df2 %>% 
+champstrata_ssrr <- champstrata$df1 %>% 
   
   # Convert to a flextable:
   flextable::qflextable()
 
 # Print table:
-champstrata_pub
+champstrata_ssrr
+
+
+## ----champ_mh_adjusted_rr-----------------------------------------------------
+
+# Extract second data.frame with summary results:
+champstrata_mhrr <- champstrata$df2 %>% 
+  
+  # Convert to a flextable:
+  flextable::qflextable()
+
+# Print table:
+champstrata_mhrr
+
 
 
 ## ----pasta_veal_assoc---------------------------------------------------------

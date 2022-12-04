@@ -1,6 +1,6 @@
 EPIET case studies: R guides
 ================
-02 December 2022
+04 December 2022
 
 -   <a href="#overview" id="toc-overview">Overview</a>
     -   <a href="#school-dinner-case-study"
@@ -10,6 +10,9 @@ EPIET case studies: R guides
         practical</a>
     -   <a href="#mapping-case-study" id="toc-mapping-case-study">Mapping case
         study</a>
+    -   <a href="#campylobacter-waterborne-outbreak-case-study"
+        id="toc-campylobacter-waterborne-outbreak-case-study">Campylobacter
+        waterborne outbreak case study</a>
 -   <a href="#github-repository" id="toc-github-repository">Github
     repository</a>
     -   <a href="#contributing" id="toc-contributing">Contributing</a>
@@ -28,6 +31,7 @@ In particular, you will find the R materials for:
 -   School dinner foodborne outbreak case study (Copenhagen, Denmark)
 -   Social network analysis practical exercise
 -   Unpasteurised milk geospatial analysis and mapping case study (UK)
+-   *Campylobacter* water-borne outbreak case study (optional exercise)
 
 Credits go to the original authors of the case studies, as well as the
 contributors who subsequently adapted the R companion guides (see
@@ -62,11 +66,28 @@ To follow the social network analysis practical, you will need:
 
 To follow the UK mapping case study, you will need:
 
--   [R mapping cases study
+-   [R mapping case study
     materials](https://epiet.github.io/OutbreakInvestigation/Mapping_R_casestudy.zip)
     (contains data sets, case study guide and R coding template)
 -   [R mapping case study
     guide](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html)
+    (online version)
+
+### Campylobacter waterborne outbreak case study
+
+Note: this is an optional exercise, which covers the same analysis
+strategy as the Copenhagen school dinner case study, but uses an older
+code base. We suggest you try this exercise If you have extra time and
+adapt the code to consolidate your learning.
+
+To follow the *Campylobacter* waterborne outbreak case study, you will
+need:
+
+-   [R Campylobacter case study
+    materials](https://epiet.github.io/OutbreakInvestigation/Campy_R_casestudy.zip)
+    (contains data sets, case study guide and R coding template)
+-   [R Campylobacter case study
+    guide](https://epiet.github.io/OutbreakInvestigation/Campy_R_guide.html)
     (online version)
 
 ## Github repository

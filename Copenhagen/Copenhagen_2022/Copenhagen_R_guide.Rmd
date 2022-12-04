@@ -2824,12 +2824,16 @@ stratall <- linelist %>%
 &nbsp;
 &nbsp;
 
-Lets begin by calculating the relative risk for being a case having eaten pasta, when stratified by consumption of veal:
+Note that the `csinter` function output is a list object containing two data.frames. You can access a data.frame within the list by typing the name that you gave the output (in this case `vealstrata`) followed by a dollar sign and the name of the data.frame you are interested in: thus `vealstrata$df1` will print the first data.frame:
+
+   + `$df1` contains the stratum-specific risk ratios
+   + `$df2` contains the Mantel Haenszel-adjusted risk ratio
 
 
-**Crude and adjusted risk ratios for pasta stratified by veal** 
+Lets begin by calculating the relative risk for being a case having eaten pasta, when stratified by consumption of veal: 
 
-```{r veal_stratifier}
+
+```{r veal_stratified_csinter}
 
 # Pass data to the csinter function:
 vealstrata <- csinter(x = stratall, 
@@ -2837,29 +2841,66 @@ vealstrata <- csinter(x = stratall,
                       exposure = "pasta", 
                       by = "veal")
 
+```
+
+Now we can extract and print the stratum-specific risk ratios.  These show the risk ratios for people who:
+
+   + (a) - ate pasta (exposed) and veal (veal = 1)
+   + (b) - didn't eat pasta (unexposed) but ate veal (veal = 1)
+   + (c) - ate pasta (exposed) but did not eat veal (veal = 0)
+   + (d) - didn't eat pasta (unexposed) and didn't eat veal (veal = 0)
+
+
+**Pasta stratified by veal: stratum-specific risk ratios** 
+
+```{r veal_stratum_specific_rr}
+
 # Extract second data.frame with summary results:
-vealstrata_pub <- vealstrata$df2 %>% 
+vealstrata_ssrr <- vealstrata$df1 %>% 
   
   # Convert to a flextable:
   flextable::qflextable()
 
 # Print table:
-vealstrata_pub
+vealstrata_ssrr
 
 ```
 
 &nbsp;
 &nbsp;
 
-Note that the output of the `csinter` function has a lot of detail in it, but typically the results that you will need are stored in the second data.frame.  The output has stored multiple data.frames as a list of objects; you can access a data.frame within the list by typing the name that you gave the output (in this case `vealstrata`) followed by a dollar sign and the name of the data.frame you are interested in: thus `vealstrata$df2` will print the second data.frame.
+Next we can look at the summary results, which are stored in `$df2`. These include:
+
+   + Crude risk ratio for having eaten pasta
+   + MH-adjusted risk ratio for having eaten pasta with or without veal
+   + Relative change between the two ratios (adjusted/crude)
+
+The degree of difference between the crude and adjusted risk ratios is a good indicator of whether or not the results for pasta are affected by cases also having eaten veal:
 
 
-We can now continue with the second stratifier, pasta:
+**Pasta stratified by veal: MH-adjusted risk ratio:**
 
+```{r veal_mh_adjusted_rr}
 
-**Crude and adjusted risk ratios for veal stratified by pasta** 
+# Extract second data.frame with summary results:
+vealstrata_mhrr <- vealstrata$df2 %>% 
+  
+  # Convert to a flextable:
+  flextable::qflextable()
 
-```{r pasta_stratifier}
+# Print table:
+vealstrata_mhrr
+
+```
+
+&nbsp;
+&nbsp;
+
+Next, we will look at pasta and veal again, but this time with veal as the exposure of interest, stratified by having eaten pasta.
+
+First, as before, we will generate the `ccinter` output:
+
+```{r pasta_stratified_csinter}
 
 # Pass data to the csinter function:
 pastastrata <- csinter(x = stratall, 
@@ -2867,26 +2908,55 @@ pastastrata <- csinter(x = stratall,
                        exposure = "veal", 
                        by = "pasta")
 
+```
+
+Next, we will look at the stratum-specific risk ratios:
+
+
+**Veal stratified by pasta: stratum-specific risk ratios** 
+
+```{r pasta_stratum_specific_rr}
+
 # Extract second data.frame with summary results:
-pastastrata_pub <- pastastrata$df2 %>% 
+pastastrata_ssrr <- pastastrata$df1 %>% 
   
   # Convert to a flextable:
   flextable::qflextable()
 
 # Print table:
-pastastrata_pub
+pastastrata_ssrr
 
 ```
 
 &nbsp;
 &nbsp;
 
-Lastly, we can look at champagne (as the exposure of interest) and see what effect having also eaten pasta has on the risk of becoming ill:
+Finaly, we will look at the MH-adjusted risk ratios:
 
 
-**Crude and adjusted risk ratios for champagne stratified by pasta** 
+**Veal stratified by pasta: MH-adjusted risk ratios** 
 
-```{r champ_stratifier}
+```{r pasta_mh_adjusted_rr}
+
+# Extract second data.frame with summary results:
+pastastrata_mhrr <- pastastrata$df2 %>% 
+  
+  # Convert to a flextable:
+  flextable::qflextable()
+
+# Print table:
+pastastrata_mhrr
+
+```
+
+&nbsp;
+&nbsp;
+
+Lastly, we can look at champagne (as the exposure of interest) and see if it was really independently associated with becoming ill, or if the high risk ratio could be explained by eating pasta.
+
+Run `csinter` to fetch the output:
+
+```{r champ_stratified_csinter}
 
 # Pass data to the csinter function:
 champstrata <- csinter(x = stratall, 
@@ -2894,28 +2964,60 @@ champstrata <- csinter(x = stratall,
                        exposure = "champagne", 
                        by = "pasta")
 
+
+```
+
+
+Extract the stratum-specific risk ratios:
+
+
+**Champagne stratified by pasta: stratum-specific risk ratios** 
+
+```{r champ_stratum_specific_rr}
+
 # Extract second data.frame with summary results:
-champstrata_pub <- champstrata$df2 %>% 
+champstrata_ssrr <- champstrata$df1 %>% 
   
   # Convert to a flextable:
   flextable::qflextable()
 
 # Print table:
-champstrata_pub
+champstrata_ssrr
 
 ```
 
 &nbsp;
 &nbsp;
 
+Finally we can look at the MH-adjusted risk ratios for champagne:
+
+
+**Champagne stratified by pasta: MH-adjusted risk ratios** 
+
+```{r champ_mh_adjusted_rr}
+
+# Extract second data.frame with summary results:
+champstrata_mhrr <- champstrata$df2 %>% 
+  
+  # Convert to a flextable:
+  flextable::qflextable()
+
+# Print table:
+champstrata_mhrr
+
+
+```
+
+&nbsp;
+&nbsp;
 
 **Questions to consider:**
 
-  1. What can you conclude from these stratifications?
+  1. What can you conclude from the stratified risk ratios?
 
   2. Is it any clearer which of the exposures among pasta, veal and champagne is the most likely vehicle of infection?
 
-(Hint: as a rule of thumb, more than 10% difference between the crude and MH-adjusted relative risk is siginficant).
+(Hint: as a rule of thumb, more than 10% difference between the crude and MH-adjusted relative risk indicates that the stratifier has had a significant effect on the exposure of interest).
 
 
 \pagebreak
