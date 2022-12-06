@@ -615,22 +615,45 @@ head(linelist$starthour)
 
 ```
 
-It seems that hours have been recorded as double digits (using the 24-hour clock).  Therefore, we can combine them with onset dates using the `lubridate::ymd_h` function (remember that we already converted `dayonset` to R date format which has the order year, then month, then day):
+It seems that hours have been recorded as double digits (using the 24-hour clock).  Therefore, we can combine them with onset dates using the `lubridate::ymd_h` function (remember that we already converted `dayonset` to R date format which has the order year, then month, then day).
+
+Before we proceed, it would be wise to check if any respondents have a value for `dayonset` but not `starthour`, or vice versa.  The `lubridate` date-time conversion functions do not have an explicit argument for dealing with missing values, but the `truncated = ...` argument can help prevent spurious date-times being derived from a date-time combination where one value is missing.  
+
+We can check if we have any missing values by cross-tabulating `starthour` with `dayonset`:
+
+
+```{r crosstab_dayonset_starthour}
+
+# Cross-tabulate dayonset with starthour:
+janitor::tabyl(dat = linelist, 
+               starthour, 
+               dayonset)
+
+```
+
+
+This shows us that there are two respondents who had an onset date, but are missing onset time (`starthour`).  Since `starthour` is represented by 1 - 2 digits, we can specify that we want `lubridate` to also parse date-time combinations that are truncated by up to two digits:
+
 
 ```{r combine_date_time}
 
 linelist <- linelist %>% 
   # Combine dayonset and starthour in a new date time variable:
-  mutate(onset_datetime = if_else(!is.na(dayonset) & 
-                                    !is.na(starthour),
-                                  lubridate::ymd_h(
-                                    paste(dayonset, starthour)), 
-                                  NA_POSIXct_))
+  mutate(onset_datetime = lubridate::ymd_h(paste(dayonset, starthour), 
+                                           # Deal with missing starthour:
+                                           truncated = 2))
 
 ```
 
 
-*Format of dayonset:*
+Note that we needed to paste `dayonset` and `starthour` together before we could convert the variable to a date-time object.  This is because the function expects a single character string, containing both the date and the time, as input.
+
+The argument `truncated = 2` will result in dates with missing `starthour` still being converted to date-time, with the missing time being set to `00:00` (midnight).  Whether you want to deal with missing `starthour` in this way or prefer to code these date-times as `NA` will depend on how you want them to be represented in your analysis.
+
+Now we can check that everything in the new combined date-time variable has parsed correctly:
+
+
+*First 6 values for dayonset:*
 
 ```{r dayonset_format}
 
@@ -639,7 +662,7 @@ head(linelist$dayonset)
 ```
 
 
-*Format of starthour:*
+*First 6 values for starthour:*
 
 ```{r starthour_format}
 
@@ -648,7 +671,7 @@ head(linelist$starthour)
 ```
 
 
-*Format of combined onset_datetime variable:*
+*First 6 values for combined onset_datetime variable:*
 
 ```{r onset_datetime_format}
 
@@ -656,10 +679,6 @@ head(linelist$onset_datetime)
 
 ```
 
-
-
-
-Note that we needed to paste `dayonset` and `starthour` together before we could convert the variable to a date-time object.  This is because the function expects a single character string, containing both the date and the time, as input.
 
 
 ### Variable class
@@ -1316,32 +1335,8 @@ janitor::tabyl(dat = linelist, onset_datetime, case) %>%
 
 We can see that the onset dates of all cases were from 11 to 13 November 2006 inclusive; this is why case numbers didn't change when we updated the case definition.
 
-However, a new data cleaning problem has come to light; it seems there were two visitors from the future (2020)!  They are not cases (remember that some respondents had non-gastrointestinal symptoms and would still have recorded an onset date but won't meet the case definition).
-
-We can review their records to see what happened:
-
-```{r view_future_visitors, eval=FALSE}
-
-# Subset and open the records in the viewer:
-View(subset(linelist, onset_datetime == ymd_hms("2020-06-11 11:00:00")))
-
-```
-
-Surprisingly, `dayonset` for these two cases is actually `2006-11-11`; but they are missing a `starthour`.  The error was introduced when we created the `onset_datetime` variable, due to the missing values for `starthour`. 
-
-Hoever, we can also see that the two respondents were correctly categorised as non-cases; although they ate at the meal, they did not develop any symptoms.  We won't need to use onset dates for non-cases in our analysis, so we can ignore this error for now.  None the less, this highlights the importance of thinking about how best to deal with missing values `NA` when creating new variables.
-
-
-**Questions to consider:**
-
-  1. Why do you think this error occured (hint: we used the function `ymd_h()`)?
-  
-  2. How would you modify the code used to create `onset_datetime` to prevent this error from occurring?
-  
-
 
 ### Exclusions
-
 
 Ultimately, the investigation team decided to remove respondents that did not meet the definition for a case or a non-case from the data set prior to analysis.  We can do this easily with the function `drop_na()`:
 
