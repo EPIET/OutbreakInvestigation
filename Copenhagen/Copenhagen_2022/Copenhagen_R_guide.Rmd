@@ -968,7 +968,10 @@ First, we create a column for the date and time of the meal.  We can use this co
 linelist <- linelist %>% 
   
   # Create new column for meal date and time:
+  # NB. If your language settings are not English, it might not recognize the ymd_hm input.
+  # You can either switch to English as provided at the beginning of this exercise, or use a ymd_h or ymd_hms input.
   mutate(meal_datetime = lubridate::ymd_hm("2006-11-11 18:00"))
+
   
 ```
 
