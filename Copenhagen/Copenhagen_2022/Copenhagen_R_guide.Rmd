@@ -463,6 +463,19 @@ pacman::p_load(rio,
 ```
 
 
+If you are working with a computer in a language other than English, R might not always recognize dates and label them accordingly in graphs. You might want to switch your R language settings for dates to English if you want to produce graphs with English date denotations (e.g. "1 January 2022").
+
+```{r load_libraries}
+
+# Check current system settings:
+Sys.getlocale()
+
+# Set time in English:
+Sys.setlocale("LC_TIME", "English") 
+
+```
+
+
 ### Import data
 
 You are now ready to import the raw data into R.
