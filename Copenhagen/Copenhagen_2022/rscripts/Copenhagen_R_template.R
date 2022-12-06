@@ -23,6 +23,15 @@ pacman::p_load(rio,
                scales)
 
 
+## ----set_locale, eval=FALSE---------------------------------------------------
+#  
+#  # Check current system settings:
+#  Sys.getlocale()
+#  
+#  # Set time in English:
+#  Sys.setlocale("LC_TIME", "English")
+#  
+
 ## ----working_directory, eval=FALSE--------------------------------------------
 #  
 #  here::here()
@@ -73,15 +82,21 @@ hist(linelist$dayonset, breaks = "day")
 head(linelist$starthour)
 
 
+## ----crosstab_dayonset_starthour----------------------------------------------
+
+# Cross-tabulate dayonset with starthour:
+janitor::tabyl(dat = linelist, 
+               starthour, 
+               dayonset)
+
+
 ## ----combine_date_time--------------------------------------------------------
 
 linelist <- linelist %>% 
   # Combine dayonset and starthour in a new date time variable:
-  mutate(onset_datetime = if_else(!is.na(dayonset) & 
-                                    !is.na(starthour),
-                                  lubridate::ymd_h(
-                                    paste(dayonset, starthour)), 
-                                  NA_POSIXct_))
+  mutate(onset_datetime = lubridate::ymd_h(paste(dayonset, starthour), 
+                                           # Deal with missing starthour:
+                                           truncated = 2))
 
 
 ## ----dayonset_format----------------------------------------------------------
@@ -456,12 +471,6 @@ janitor::tabyl(dat = linelist, case)
 janitor::tabyl(dat = linelist, onset_datetime, case) %>% 
   adorn_totals()
 
-
-## ----view_future_visitors, eval=FALSE-----------------------------------------
-#  
-#  # Subset and open the records in the viewer:
-#  View(subset(linelist, onset_datetime == ymd_hms("2020-06-11 11:00:00")))
-#  
 
 ## ----drop_nacase--------------------------------------------------------------
 

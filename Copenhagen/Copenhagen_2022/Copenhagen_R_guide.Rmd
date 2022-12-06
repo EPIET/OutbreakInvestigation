@@ -465,7 +465,7 @@ pacman::p_load(rio,
 
 If you are working with a computer in a language other than English, R might not always recognize dates and label them accordingly in graphs. You might want to switch your R language settings for dates to English if you want to produce graphs with English date denotations (e.g. "1 January 2022").
 
-```{r load_libraries}
+```{r set_locale, eval=FALSE}
 
 # Check current system settings:
 Sys.getlocale()
@@ -1449,7 +1449,7 @@ Many of the descriptive features can be illustrated graphically, for which we wi
 
 We will also create summary tables, using `janitor::tabyl()` for further exploration and the `gtsummary` package to create nicely formatted tables that can be used in reports and other publications.
 
-For more detail on `tabyl()` function and the `adorn_XYZ`-helpers, see the [`janitor`-documentation](https://cran.r-project.org/web/packages/janitor/vignettes/tabyls.html) or [*The Epidemiologist R Handbook* section on tabulation](https://epirhandbook.com/en/descriptive-tables.html#tbl_janitor).
+For more detail on `tabyl()` function and the `adorn_XYZ` helpers, see the [`janitor` documentation](https://cran.r-project.org/web/packages/janitor/vignettes/tabyls.html) or [*The Epidemiologist R Handbook* section on tabulation](https://epirhandbook.com/en/descriptive-tables.html#tbl_janitor).
 
 To create some of the summary tables, we will need to describe and calculate summary statistics for multiple columns in the same way.  There are special functions in `tidyverse` packages that make it easier to *iterate* over multiple columns and apply the same calculations to them, without having to repeat the code for each one.  We already saw how this worked with `across()`, `if_any()` and `if_all()`in the previous section.  The `purrr` package, which is part of the tidyverse, has several `map()` functions that extend this capability to more complex use cases.  
 
