@@ -238,6 +238,7 @@ linelist <- linelist %>%
   
   # Create new column for meal date and time:
   mutate(meal_datetime = lubridate::ymd_hm("2006-11-11 18:00"))
+
   
 
 ## ----define_gastrosymptoms----------------------------------------------------
@@ -496,76 +497,175 @@ linelist <- rio::import(here::here("data", "Copenhagen_clean.xlsx")) %>%
                 .fns = as.factor))
 
 
+## ----incubation_ggplot--------------------------------------------------------
+
+incplot <- linelist %>% 
+  
+  # Remove missing values:
+  drop_na(incubation) %>% 
+  
+  # Create an empty ggplot frame:
+  ggplot() +
+  
+  # Add a histogram of incubation:
+  geom_histogram(aes(x = incubation), 
+                 
+                 # Set bin widths to 6 hours:
+                 binwidth = 6) +
+  
+  # Adapt scale to better fit data
+  scale_x_continuous(breaks = seq(0, 48, 6)) + 
+  
+  # Label x and y axes:
+  labs(x = "Incubation period in 6-hour bins",
+       y = "Number of cases")
+
+# Print plot:
+incplot
+
+
+
+## ----epicurve_date------------------------------------------------------------
+
+# Fetch data:
+epicurve_date <- linelist %>% 
+  
+  # Filter for cases where dayonset is not missing:
+  filter(case == TRUE & !is.na(dayonset)) %>% 
+  
+  # Add factor onset_day to ggplot aesthetic:
+  ggplot(aes(x = dayonset)) + 
+  
+  # Add geom_bar:
+  geom_bar() +
+  
+  # Adapt scale to data and adjust axis label angle:
+  scale_x_datetime(
+    date_breaks = "1 day",
+    labels = label_date_short()) +
+  
+  # Update x and y axis labels:
+  labs(x = "Date of onset", 
+       y = "Number of cases") +
+  
+  # Remove unnecessary grid lines:
+  theme_bw()
+
+# Print epicurve:
+epicurve_date
+
+
+
+## ----epicurve_hour------------------------------------------------------------
+
+# Fetch data:
+epicurve_hour <- linelist %>% 
+  
+  # Filter for cases where dayonset is not missing:
+  filter(case == TRUE & !is.na(onset_datetime)) %>% 
+  
+  # Add factor onset_day to ggplot aesthetic:
+  ggplot(aes(x = onset_datetime)) + 
+  
+  # Add geom_histogram:
+  geom_bar() +
+  
+  # Adjust x axis scales to a suitable unit:
+  scale_x_datetime(
+    date_breaks = "6 hours", 
+    labels = label_date_short()) +
+  
+  # Update x and y axis labels:
+  labs(x = "Date and time of onset", 
+       y = "Number of cases") +
+
+  
+  # Remove unnecessary grid lines:
+  theme_bw()
+
+# Print epicurve:
+epicurve_hour
+
+
+## ----epicurve_stratified------------------------------------------------------
+
+# Fetch data:
+epicurve_strata <- linelist %>% 
+  
+  # Filter for cases where dayonset is not missing:
+  filter(case == TRUE & !is.na(onset_datetime)) %>% 
+  
+  # Add factor onset_day to ggplot aesthetic:
+  ggplot(aes(x = onset_datetime, fill = group)) + 
+  
+  # Add nicer fill colours:
+  scale_fill_manual(values = c("darkred", "lightblue")) +
+  
+  # Add geom_histogram:
+  geom_bar() +
+  
+  # Adjust x axis scales to a suitable unit:
+  scale_x_datetime(
+    date_breaks = "6 hours", 
+    labels = label_date_short()) +
+  
+  # Update x and y axis labels:
+  labs(x = "Date and time of onset", 
+       y = "Number of cases", 
+       fill = "Group", 
+       title = "Epicurve of the outbreak, stratified by sex",
+       subtitle = str_glue("Copenhagen, November 2006, N = {sum(linelist$case)}")) +
+
+  # Stratify by sex:
+  facet_wrap(facets = "sex",
+             ncol = 2) +
+  
+  # Add theme:
+  theme_bw()
+
+# Print epicurve:
+epicurve_strata
+
+
+
+
 ## ----sex_tabyl----------------------------------------------------------------
 
 linelist %>% 
   
-  janitor::tabyl(case, sex)
+  janitor::tabyl(case, sex) %>% 
+  
+  adorn_totals() %>% 
+  
+  adorn_percentages() %>% 
+  
+  adorn_pct_formatting() 
 
 
-## ----sex_gtsummary------------------------------------------------------------
+## ----group_tabyl--------------------------------------------------------------
 
-tabsex <- linelist %>%
+linelist %>% 
   
-  # Select person characteristics to summarise:
-  select(case, age, sex, group, class) %>% 
+  janitor::tabyl(case, group) %>% 
   
-  # Create the summary table:
-  gtsummary::tbl_summary(
-    
-    # Stratify by case:
-    by = case, 
-    
-    # Statistics to use for continuous and categorical variables:
-    statistic = list(all_continuous() ~ "{mean} ({sd})",        
-                     all_categorical() ~ "{n} ({p}%)"), 
-    
-    # Calculate row percentages:
-    percent = "row",
-    
-    # Don't show missing values:
-    missing = "no"
-    
-  ) %>% 
+  adorn_totals() %>% 
   
-  # Add tests of statistical significance of differences between groups:
-  add_p(test = list(all_continuous() ~ "t.test",       # Continuous variables
-                    all_categorical() ~ "chisq.test"), # Categorical variables
-        
-        # Identify grouping variable:
-        group = case,
-                 
-        # Define any test arguments that deviate from the default:
-        test.args = list(all_tests("t.test") ~ 
-                           list(var.equal = FALSE), 
-                         all_tests("chisq.test") ~ 
-                           list(simulate.p.value = TRUE))) %>% 
+  adorn_percentages() %>% 
   
-  # Add totals:
-  add_overall() %>% 
-  
-  # Individually label which row had which statistical test: 
-  separate_p_footnotes() %>% 
-  
-  # Make variable names bold and italics:
-  bold_labels() %>% 
-  italicize_labels() %>% 
-  
-  # Modify header:
-  modify_header(
-    label = "**Characteristic**",
-    stat_0 = "**Overall**\n *N* = {N}",
-    stat_1 = "**Non-case**\n *N* = {n}",
-    stat_2 = "**Case**\n *N* = {n}", 
-    p.value = "**P value**"
-    
-    ) %>% 
-  
-  # Convert to flextable:
-  gtsummary::as_flex_table()
+  adorn_pct_formatting() 
 
-# Print the table:
-tabsex
+
+## ----class_tabyl--------------------------------------------------------------
+
+linelist %>% 
+  
+  janitor::tabyl(case, class) %>% 
+  
+  adorn_totals() %>% 
+  
+  adorn_percentages() %>% 
+  
+  adorn_pct_formatting() 
 
 
 ## ----define_age_cat-----------------------------------------------------------
@@ -639,6 +739,14 @@ symptoms <- c("diarrhoea",
 # Create summary table:
 tabsymptoms <- linelist %>%
   
+  mutate(across(.cols = symptoms, 
+                .fns = factor)) %>% 
+  
+  mutate(across(.cols = symptoms,
+                .fns = ~ forcats::fct_explicit_na(f = .x, 
+                                                  na_level = "Unknown"))
+         ) %>% 
+  
   # Select person characteristics to summarise:
   select(case, all_of(symptoms)) %>% 
   
@@ -648,15 +756,8 @@ tabsymptoms <- linelist %>%
     # Stratify by case:
     by = case, 
     
-    # Statistics to use for continuous and categorical variables:
-    statistic = list(all_continuous() ~ "{mean} ({sd})",        
-                     all_categorical() ~ "{n} ({p}%)"), 
-    
-    # Don't show missing values:
-    missing = "no",
-    
-    # Sort the data:
-    sort = list(everything() ~ "frequency"), 
+    # Calculate row percentages:
+    percent = "column",
     
     # Create nice labels:
     label  = list(
@@ -671,24 +772,8 @@ tabsymptoms <- linelist %>%
     
   ) %>% 
   
-  # Add tests of statistical significance of differences between groups:
-  add_p(test = list(all_continuous() ~ "t.test",       # Continuous
-                    all_categorical() ~ "chisq.test"), # Categorical
-        
-        # Identify grouping variable:
-        group = case,
-                 
-        # Define any test arguments that deviate from the default:
-        test.args = list(all_tests("t.test") ~ 
-                           list(var.equal = FALSE), 
-                         all_tests("chisq.test") ~ 
-                           list(simulate.p.value = TRUE))) %>% 
-  
   # Add totals:
   add_overall() %>% 
-  
-  # Individually label which row had which statistical test: 
-  separate_p_footnotes() %>% 
   
   # Make variable names bold and italics:
   bold_labels() %>% 
@@ -836,7 +921,7 @@ teachers_ap
 attack_prop <- linelist %>% 
   
   # Select columns:
-  select (case, group, class, sex) %>% 
+  select (case, age_cat, group, class, sex) %>% 
   
   # Create table:
   tbl_summary(
@@ -858,153 +943,27 @@ attack_prop <- linelist %>%
   # Modify header:
   modify_header(
     label = "**Characteristic**",
-    stat_0 = "**Overall**\n *N* = {N}",
-    stat_1 = "**Non-case**\n *N* = {n}",
-    stat_2 = "**Case**\n *N* = {n}", 
+    stat_0 = "**Overall**<br> *N* = {N}",
+    stat_1 = "**Non-case**<br> *N* = {n}",
+    stat_2 = "**Case**<br> *N* = {n}", 
     p.value = "**P value**"
-  )
+  ) %>% 
+  
+  # Sort by p-value:
+  sort_p() %>% 
+  
+  # Convert to flextable:
+  gtsummary::as_flex_table()
 
 
 # Print table:
 attack_prop
 
 
-## ----incubation_ggplot--------------------------------------------------------
-
-incplot <- linelist %>% 
-  
-  # Remove missing values:
-  drop_na(incubation) %>% 
-  
-  # Create an empty ggplot frame:
-  ggplot() +
-  
-  # Add a histogram of incubation:
-  geom_histogram(aes(x = incubation), 
-                 
-                 # Set bin widths to 6 hours:
-                 binwidth = 6) +
-  
-  # Adapt scale to better fit data
-  scale_x_continuous(breaks = seq(0, 48, 6)) + 
-  
-  # Label x and y axes:
-  labs(x = "Incubation period in 6-hour bins",
-       y = "Number of cases")
-
-# Print plot:
-incplot
-
-
-
-## ----epicurve_date------------------------------------------------------------
-
-# Fetch data:
-epicurve_date <- linelist %>% 
-  
-  # Filter for cases where dayonset is not missing:
-  filter(case == TRUE & !is.na(dayonset)) %>% 
-  
-  # Add factor onset_day to ggplot aesthetic:
-  ggplot(aes(x = dayonset)) + 
-  
-  # Add geom_bar:
-  geom_bar() +
-  
-  # Adapt scale to data and adjust axis label angle:
-  scale_x_datetime(
-    date_breaks = "1 day",
-    labels = label_date_short()) +
-  
-  # Update x and y axis labels:
-  labs(x = "Date of onset", 
-       y = "Number of cases") +
-  
-  # Remove unnecessary grid lines:
-  theme_bw()
-
-# Print epicurve:
-epicurve_date
-
-
-
-## ----epicurve_hour------------------------------------------------------------
-
-# Fetch data:
-epicurve_hour <- linelist %>% 
-  
-  # Filter for cases where dayonset is not missing:
-  filter(case == TRUE & !is.na(onset_datetime)) %>% 
-  
-  # Add factor onset_day to ggplot aesthetic:
-  ggplot(aes(x = onset_datetime)) + 
-  
-  # Add geom_histogram:
-  geom_bar() +
-  
-  # Adjust x axis scales to a suitable unit:
-  scale_x_datetime(
-    date_breaks = "6 hours", 
-    labels = label_date_short()) +
-  
-  # Update x and y axis labels:
-  labs(x = "Date and time of onset", 
-       y = "Number of cases") +
-
-  
-  # Remove unnecessary grid lines:
-  theme_bw()
-
-# Print epicurve:
-epicurve_hour
-
-
-## ----epicurve_stratified------------------------------------------------------
-
-# Fetch data:
-epicurve_strata <- linelist %>% 
-  
-  # Filter for cases where dayonset is not missing:
-  filter(case == TRUE & !is.na(onset_datetime)) %>% 
-  
-  # Add factor onset_day to ggplot aesthetic:
-  ggplot(aes(x = onset_datetime, fill = group)) + 
-  
-  # Add nicer fill colours:
-  scale_fill_manual(values = c("darkred", "lightblue")) +
-  
-  # Add geom_histogram:
-  geom_bar() +
-  
-  # Adjust x axis scales to a suitable unit:
-  scale_x_datetime(
-    date_breaks = "6 hours", 
-    labels = label_date_short()) +
-  
-  # Update x and y axis labels:
-  labs(x = "Date and time of onset", 
-       y = "Number of cases", 
-       fill = "Group", 
-       title = "Epicurve of the outbreak, stratified by sex",
-       subtitle = str_glue("Copenhagen, November 2006, N = {sum(linelist$case)}")) +
-
-  # Stratify by sex:
-  facet_wrap(facets = "sex",
-             ncol = 2) +
-  
-  # Add theme:
-  theme_bw()
-
-# Print epicurve:
-epicurve_strata
-
-
-
-
-## ----odds_ratios_table--------------------------------------------------------
+## ----risk_ratios_table--------------------------------------------------------
 
 # Pipe in the data:
-ortab <- linelist %>% 
+rrtab <- linelist %>% 
   
   # Select the variables to analyse:
   select(all_of(exposure_cols), case) %>% 
@@ -1022,7 +981,7 @@ ortab <- linelist %>%
     y = case,
     
     # Choose the model family:
-    method.args = list(family = binomial(link = "logit")),
+    method.args = list(family = binomial(link = "log")),
     
     # Exponentiate the results:
     exponentiate = TRUE, 
@@ -1032,145 +991,14 @@ ortab <- linelist %>%
     
   ) %>% 
   
+  # Sort the table by p-values: 
+  sort_p() %>% 
+  
+  # Convert to a flextable for printing:
   gtsummary::as_flex_table()
   
 # Print the results table:
-ortab
-
-
-## ----rr_table_raw-------------------------------------------------------------
-
-# Pipe in the data:
-rrtab <- linelist %>% 
-  
-  # Select the variables to analyse:
-  select(all_of(exposure_cols), case) %>% 
-  
-  # Remove missing values:
-  drop_na() %>% 
-  
-  # Calculate risk ratios:
-  EpiStats::cstable(
-    
-    # Define outcome variable:
-    cases = "case", 
-    
-    # Define exposure columns:
-    exposure = c(exposure_cols),
-    
-    # Calculate Fisher's exact test for P values:
-    exact = TRUE, 
-    
-    # Sort output by relative risk:
-    sort = "rr"
-    
-    )
-
-
-## ----rr_table_publication-----------------------------------------------------
-
-# Define style for flextable border line
-border_style = officer::fp_border(color = "black", width = 1)
-
-
-  # Extract the data.frame from the list of outputs:
-  rrtab_pub <- rrtab$df %>% 
-    
-    # Clean column names:
-    janitor::clean_names() %>% 
-    
-    # Convert row names with exposures to first column:
-    rownames_to_column(var = "exposure") %>% 
-    
-    # Merge lower and upper 95% CI in a new column:
-    tidyr::unite(col = "ci95", 
-                 starts_with("ci_"), 
-                 sep = " - ", 
-                 remove = TRUE)  %>% 
-    
-    # Convert to a flextable:
-    flextable::flextable() %>% 
-    
-    # Set column labels:
-    flextable::set_header_labels(values = list(
-      exposure = "Exposure",
-      tot_exp = "Total",
-      exp_cases = "Cases",
-      ar_percent = "Attack %", 
-      tot_unex = "Total", 
-      unex_cases = "Cases", 
-      ar_percent_2 = "Attack %", 
-      rr = "RR",
-      ci95 = "95% CI", 
-      p_fisher = "P (Fisher)")) %>% 
-    
-    # Add title header row:
-    flextable::add_header_row(
-      values = c("Exposure", 
-                 "Exposed", 
-                 "Unexposed", 
-                 "Relative Risk", 
-                 "P (Fisher)"), 
-      colwidths = c(1, 3, 3, 2, 1)) %>% 
-    
-    # Merge cells in header rows:
-    merge_at(i = 1:2, j = 1, part = "header") %>% 
-    merge_at(i = 1:2, j = 10, part = "header") %>% 
-    
-    # Right align numeric results columns:
-    flextable::align(j = 2:10, 
-                     align = "right", 
-                     part = "body") %>%
-    
-    # Center align top header row:
-    flextable::align(i = 1, 
-                     j = 2:9, 
-                     align = "center", 
-                     part = "header") %>% 
-    
-    # Right align second header row:
-    flextable::align(i = 2, 
-                     j = 2:9, 
-                     align = "right", 
-                     part = "header") %>%
-    
-    # Make merged cells on top header row bold:
-    flextable::bold(i = 1:2, 
-                    j = c(1, 10), 
-                    bold = TRUE, 
-                    part = "header") %>% 
-    
-    # Make other cells on top header row bold:
-    flextable::bold(i = 1, 
-                    j = 2:9, 
-                    bold = TRUE, 
-                    part = "header") %>% 
-    
-    # Make bottom header row italic:
-    flextable::italic(i = 2, 
-                      j = 2:9, 
-                      italic = TRUE, 
-                      part = "header") %>% 
-
-    # Add highlighting of significant values:
-    flextable::bg(i = ~ p_fisher < 0.05, 
-                  j = 1:10,
-                  bg = "yellow") %>%
-    
-    # Add vertical borders between sections:
-    flextable::vline(part = "all", j = 1, border = border_style) %>% 
-    flextable::vline(part = "all", j = 4, border = border_style) %>%
-    flextable::vline(part = "all", j = 7, border = border_style) %>%
-    flextable::vline(part = "all", j = 9, border = border_style) %>%
-    
-    # Autofit column width to text width:
-    flextable::set_table_properties(
-      width = 1, 
-      layout = "autofit")
-
-
-# Print the results table:
-rrtab_pub
+rrtab
 
 
 ## ----htest_sex_case-----------------------------------------------------------
@@ -1250,33 +1078,55 @@ wilcox.test(vealD ~ case, data = linelist)
 wilcox.test(pastaD ~ case, data = linelist)
 
 
-## ----doseresponse_vars_rr-----------------------------------------------------
+## ----dose_response_cols-------------------------------------------------------
 
-### Pipe in the data:
-rrdrtab <- linelist %>% 
+# Start with the linelist:
+dr_cols <- linelist %>% 
+  
+  # Select all the columns ending in upper case 'D':
+  select(ends_with("D", ignore.case = FALSE)) %>% 
+  
+  # Extract the names of these columns into a vector:
+  names()
+
+
+## ----rr_doseresponse_table----------------------------------------------------
+
+# Pipe in the data:
+drtab <- linelist %>% 
   
   # Select the variables to analyse:
-  select(ends_with("D", ignore.case = FALSE), case) 
-
-
-### Create list of dose response variables:
-dr_cols <- names(rrdrtab)[!names(rrdrtab) %in% c("case")]
-
-
-### Pass dose response columns to formula:
-dr_cols %>% 
+  select(all_of(dr_cols), case) %>% 
   
-  # Set dose resonse column names:
-  set_names() %>%
+  # Remove missing values:
+  drop_na() %>% 
   
-  # Map them to the wilcox.test function:
-  purrr::map(.f = ~ wilcox.test(
+  # Calculate risk ratios and tabulate results:
+  gtsummary::tbl_uvregression(
     
-    # Name the data set:
-    data = linelist, 
+    # Choose the model (generalised linear model)
+    method = glm, 
     
-    # Paste together the test formula, using '.x' as a wild card:
-    as.formula(str_c(.x,"~","case"))))
+    # Name the outcome variable:
+    y = case,
+    
+    # Choose the model family:
+    method.args = list(family = binomial(link = "log")),
+    
+    # Exponentiate the results:
+    exponentiate = TRUE 
+ 
+  ) %>% 
+  
+  # Sort the table by p-values: 
+  sort_p() %>% 
+  
+  # Convert to a flextable for printing:
+  gtsummary::as_flex_table()
+  
+# Print the results table:
+drtab
+
 
 
 ## ----back2binary--------------------------------------------------------------

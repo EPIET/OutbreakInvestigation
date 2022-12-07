@@ -987,12 +987,15 @@ First, we create a column for the date and time of the meal.  We can use this co
 linelist <- linelist %>% 
   
   # Create new column for meal date and time:
-  # NB. If your language settings are not English, it might not recognize the ymd_hm input.
-  # You can either switch to English as provided at the beginning of this exercise, or use a ymd_h or ymd_hms input.
   mutate(meal_datetime = lubridate::ymd_hm("2006-11-11 18:00"))
 
   
 ```
+
+
+*Note:*
+
+If your language settings are not English, it might not recognize the `ymd_hm` input. You can either switch to English as provided at the beginning of this exercise, or use a `ymd_h` or `ymd_hms` input.
 
 
 For the case definition, we are primarily interested in three symptoms:
@@ -1494,6 +1497,191 @@ In your analysis plan you should create a document to include:
 \pagebreak
 
 
+## Time
+
+In this session , we will take a closer look at incubation periods and also construct an epicurve.  The incubation period can be a useful guide to determine what units and intervals to use in the epicurve.
+
+
+### Incubation period
+
+> The incubation period of a disease is the time from an exposure resulting in infection until the onset of disease. Because infection usually occurs immediately after exposure, the
+incubation period is generally the duration of the period from the onset of infection to the onset of disease.
+> 
+> `r tufte::quote_footer('--- Rothman, Greenland, Lash (2017): Modern Epidemiology, 3rd edition')`
+
+
+In the previous section, we calculated incubation period by subtracting the meal date and time from the date and time of symptom onset.  This gave us the incubation period in hours.  We can now look at this on a graph:
+
+
+**Plot of incubation period:**
+
+```{r incubation_ggplot}
+
+incplot <- linelist %>% 
+  
+  # Remove missing values:
+  drop_na(incubation) %>% 
+  
+  # Create an empty ggplot frame:
+  ggplot() +
+  
+  # Add a histogram of incubation:
+  geom_histogram(aes(x = incubation), 
+                 
+                 # Set bin widths to 6 hours:
+                 binwidth = 6) +
+  
+  # Adapt scale to better fit data
+  scale_x_continuous(breaks = seq(0, 48, 6)) + 
+  
+  # Label x and y axes:
+  labs(x = "Incubation period in 6-hour bins",
+       y = "Number of cases")
+
+# Print plot:
+incplot
+
+
+```
+
+What can you infer from the incubation periods on the histogram?
+
+
+### Epidemic curve
+
+To create an *epicurve*, we are going to use `ggplot2`. `ggplot2` is a versatile package that helps create beautiful visualizations in `R`. There are plenty good in-depth guides to the package, for example: [*The Epidemiologist R Handbook* Chapter on *ggplot*](https://epirhandbook.com/en/ggplot-basics.html) and [*ggplot2 - Elegant Graphics for Data Analysis*](https://ggplot2-book.org/index.html). 
+
+
+First, we can create an epicurve for the date of onset, limiting the input data to cases:
+
+```{r epicurve_date}
+
+# Fetch data:
+epicurve_date <- linelist %>% 
+  
+  # Filter for cases where dayonset is not missing:
+  filter(case == TRUE & !is.na(dayonset)) %>% 
+  
+  # Add factor onset_day to ggplot aesthetic:
+  ggplot(aes(x = dayonset)) + 
+  
+  # Add geom_bar:
+  geom_bar() +
+  
+  # Adapt scale to data and adjust axis label angle:
+  scale_x_datetime(
+    date_breaks = "1 day",
+    labels = label_date_short()) +
+  
+  # Update x and y axis labels:
+  labs(x = "Date of onset", 
+       y = "Number of cases") +
+  
+  # Remove unnecessary grid lines:
+  theme_bw()
+
+# Print epicurve:
+epicurve_date
+
+
+```
+
+
+As you can see, the epicurve is quite crude, because most cases had their disease onset on 12 November. To increase resolution, we could enhance the time information to include both day and hour.
+
+During the data preparation session, we already concatenated the variables `dayonset` and `starthour` together and formatted them with the `lubridate` package to create a new date-time variable called `onset_datetime`.  We can now create the epicurve with this variable:
+
+
+```{r epicurve_hour}
+
+# Fetch data:
+epicurve_hour <- linelist %>% 
+  
+  # Filter for cases where dayonset is not missing:
+  filter(case == TRUE & !is.na(onset_datetime)) %>% 
+  
+  # Add factor onset_day to ggplot aesthetic:
+  ggplot(aes(x = onset_datetime)) + 
+  
+  # Add geom_histogram:
+  geom_bar() +
+  
+  # Adjust x axis scales to a suitable unit:
+  scale_x_datetime(
+    date_breaks = "6 hours", 
+    labels = label_date_short()) +
+  
+  # Update x and y axis labels:
+  labs(x = "Date and time of onset", 
+       y = "Number of cases") +
+
+  
+  # Remove unnecessary grid lines:
+  theme_bw()
+
+# Print epicurve:
+epicurve_hour
+
+```
+
+
+Finally, we could compare the epicurve between the sexes and additionally investigate how teachers versus students were distributed. Here, `fill`  adds an additional variable to be displayed in the plot: `group` is going to determine the fill-colour of our bars. `facet_wrap` splits the graph in two: one each for the two levels of `sex`. 
+
+We will also use the function `str_glue()` to add the total number of cases to the sub-title of the plot.  `str_glue()` is a very useful function that allows you to dynamically create a summary statistic from your data within some normal text.
+
+
+```{r epicurve_stratified}
+
+# Fetch data:
+epicurve_strata <- linelist %>% 
+  
+  # Filter for cases where dayonset is not missing:
+  filter(case == TRUE & !is.na(onset_datetime)) %>% 
+  
+  # Add factor onset_day to ggplot aesthetic:
+  ggplot(aes(x = onset_datetime, fill = group)) + 
+  
+  # Add nicer fill colours:
+  scale_fill_manual(values = c("darkred", "lightblue")) +
+  
+  # Add geom_histogram:
+  geom_bar() +
+  
+  # Adjust x axis scales to a suitable unit:
+  scale_x_datetime(
+    date_breaks = "6 hours", 
+    labels = label_date_short()) +
+  
+  # Update x and y axis labels:
+  labs(x = "Date and time of onset", 
+       y = "Number of cases", 
+       fill = "Group", 
+       title = "Epicurve of the outbreak, stratified by sex",
+       subtitle = str_glue("Copenhagen, November 2006, N = {sum(linelist$case)}")) +
+
+  # Stratify by sex:
+  facet_wrap(facets = "sex",
+             ncol = 2) +
+  
+  # Add theme:
+  theme_bw()
+
+# Print epicurve:
+epicurve_strata
+
+
+
+```
+
+
+What does the stratified epicurve tell you?
+
+Try stratifying by some other variables (for example a symptom, or age categories) to explore the temporal distribution further.
+
+
+\pagebreak
+
+
 ## Person
 
 In this section, we will describe the outbreak in terms of personal characteristics (age, sex and symptoms of cases).
@@ -1512,97 +1700,63 @@ We can start by cross-tabulating with `tabyl()`:
 
 linelist %>% 
   
-  janitor::tabyl(case, sex)
-
-```
-What do you notice about the distribution of females and males?  Is it the same in cases and non cases?
-
-This might be better answered by looking at proportions.  We can do this with the `gtsummary::tbl_summary()` function, which also makes it easy to summarise other variables in a publication-ready table.
-
-We select the variables from `linelist` that we want to show in the table, before passing them to the `tbl_summary()` function.
-
-Next, we specify that we want to stratify the variables by `case`.
-
-We can also choose what statistics to show and what tests to use:
-
-   + *Categorical variables:* *N* and % are shown and tested with chi square
-   + *Continuous variables:* mean and SD are shown and tested with t test
-
-We have also formatted the column and row headers and footnotes, using the `str_glue()` function to stitch together text and R code to produce the summary counts.  The R code is enclosed in curly braces `{}`.  
-
-While this isn't essential (the defaults are ok) it makes the table a bit easier to read. The [gtsummary vignette](https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html) is a good source of further information on customizing and formatting options.  
-
-
-**Table of personal characteristics stratified by case definition**
-
-```{r sex_gtsummary}
-
-tabsex <- linelist %>%
+  janitor::tabyl(case, sex) %>% 
   
-  # Select person characteristics to summarise:
-  select(case, age, sex, group, class) %>% 
+  adorn_totals() %>% 
   
-  # Create the summary table:
-  gtsummary::tbl_summary(
-    
-    # Stratify by case:
-    by = case, 
-    
-    # Statistics to use for continuous and categorical variables:
-    statistic = list(all_continuous() ~ "{mean} ({sd})",        
-                     all_categorical() ~ "{n} ({p}%)"), 
-    
-    # Calculate row percentages:
-    percent = "row",
-    
-    # Don't show missing values:
-    missing = "no"
-    
-  ) %>% 
+  adorn_percentages() %>% 
   
-  # Add tests of statistical significance of differences between groups:
-  add_p(test = list(all_continuous() ~ "t.test",       # Continuous variables
-                    all_categorical() ~ "chisq.test"), # Categorical variables
-        
-        # Identify grouping variable:
-        group = case,
-                 
-        # Define any test arguments that deviate from the default:
-        test.args = list(all_tests("t.test") ~ 
-                           list(var.equal = FALSE), 
-                         all_tests("chisq.test") ~ 
-                           list(simulate.p.value = TRUE))) %>% 
-  
-  # Add totals:
-  add_overall() %>% 
-  
-  # Individually label which row had which statistical test: 
-  separate_p_footnotes() %>% 
-  
-  # Make variable names bold and italics:
-  bold_labels() %>% 
-  italicize_labels() %>% 
-  
-  # Modify header:
-  modify_header(
-    label = "**Characteristic**",
-    stat_0 = "**Overall**\n *N* = {N}",
-    stat_1 = "**Non-case**\n *N* = {n}",
-    stat_2 = "**Case**\n *N* = {n}", 
-    p.value = "**P value**"
-    
-    ) %>% 
-  
-  # Convert to flextable:
-  gtsummary::as_flex_table()
-
-# Print the table:
-tabsex
+  adorn_pct_formatting() 
 
 ```
 
-&nbsp;
-&nbsp;
+
+**Questions to consider:**
+
+  1. What do you notice about the distribution of females and males?
+  
+  2. Is it the same in cases and non cases?
+
+  
+Now we can also look at `group` (whether the respondent is a student or a teacher):
+
+```{r group_tabyl}
+
+linelist %>% 
+  
+  janitor::tabyl(case, group) %>% 
+  
+  adorn_totals() %>% 
+  
+  adorn_percentages() %>% 
+  
+  adorn_pct_formatting() 
+
+```
+
+
+We can see that the majority of respondents are students; this is true for both cases and non-cases.
+
+Lastly, we will look at school class.  The respondents belong to three classes:
+
+
+```{r class_tabyl}
+
+linelist %>% 
+  
+  janitor::tabyl(case, class) %>% 
+  
+  adorn_totals() %>% 
+  
+  adorn_percentages() %>% 
+  
+  adorn_pct_formatting() 
+
+```
+
+
+We will later summarise all of this information in a table, when looking at attack proportions.
+
 
 **Questions to consider:**
 
@@ -1722,6 +1876,14 @@ Now we can create a summary table with `gtsummary` with symptoms stratified by c
 # Create summary table:
 tabsymptoms <- linelist %>%
   
+  mutate(across(.cols = symptoms, 
+                .fns = factor)) %>% 
+  
+  mutate(across(.cols = symptoms,
+                .fns = ~ forcats::fct_explicit_na(f = .x, 
+                                                  na_level = "Unknown"))
+         ) %>% 
+  
   # Select person characteristics to summarise:
   select(case, all_of(symptoms)) %>% 
   
@@ -1731,15 +1893,8 @@ tabsymptoms <- linelist %>%
     # Stratify by case:
     by = case, 
     
-    # Statistics to use for continuous and categorical variables:
-    statistic = list(all_continuous() ~ "{mean} ({sd})",        
-                     all_categorical() ~ "{n} ({p}%)"), 
-    
-    # Don't show missing values:
-    missing = "no",
-    
-    # Sort the data:
-    sort = list(everything() ~ "frequency"), 
+    # Calculate row percentages:
+    percent = "column",
     
     # Create nice labels:
     label  = list(
@@ -1754,24 +1909,8 @@ tabsymptoms <- linelist %>%
     
   ) %>% 
   
-  # Add tests of statistical significance of differences between groups:
-  add_p(test = list(all_continuous() ~ "t.test",       # Continuous
-                    all_categorical() ~ "chisq.test"), # Categorical
-        
-        # Identify grouping variable:
-        group = case,
-                 
-        # Define any test arguments that deviate from the default:
-        test.args = list(all_tests("t.test") ~ 
-                           list(var.equal = FALSE), 
-                         all_tests("chisq.test") ~ 
-                           list(simulate.p.value = TRUE))) %>% 
-  
   # Add totals:
   add_overall() %>% 
-  
-  # Individually label which row had which statistical test: 
-  separate_p_footnotes() %>% 
   
   # Make variable names bold and italics:
   bold_labels() %>% 
@@ -1965,7 +2104,7 @@ We can use the `tbl_summary()` function from the `gtsummary` package as before, 
 attack_prop <- linelist %>% 
   
   # Select columns:
-  select (case, group, class, sex) %>% 
+  select (case, age_cat, group, class, sex) %>% 
   
   # Create table:
   tbl_summary(
@@ -1987,11 +2126,17 @@ attack_prop <- linelist %>%
   # Modify header:
   modify_header(
     label = "**Characteristic**",
-    stat_0 = "**Overall**\n *N* = {N}",
-    stat_1 = "**Non-case**\n *N* = {n}",
-    stat_2 = "**Case**\n *N* = {n}", 
+    stat_0 = "**Overall**<br> *N* = {N}",
+    stat_1 = "**Non-case**<br> *N* = {n}",
+    stat_2 = "**Case**<br> *N* = {n}", 
     p.value = "**P value**"
-  )
+  ) %>% 
+  
+  # Sort by p-value:
+  sort_p() %>% 
+  
+  # Convert to flextable:
+  gtsummary::as_flex_table()
 
 
 # Print table:
@@ -2007,186 +2152,6 @@ What can you conclude from this?
 \pagebreak
 
 
-## Time
-
-In this session , we will take a closer look at incubation periods and also construct an epicurve.  The incubation period can be a useful guide to determine what units and intervals to use in the epicurve.
-
-
-### Incubation period
-
-> The incubation period of a disease is the time from an exposure resulting in infection until the onset of disease. Because infection usually occurs immediately after exposure, the
-incubation period is generally the duration of the period from the onset of infection to the onset of disease.
-> 
-> `r tufte::quote_footer('--- Rothman, Greenland, Lash (2017): Modern Epidemiology, 3rd edition')`
-
-
-In the previous section, we calculated incubation period by subtracting the meal date and time from the date and time of symptom onset.  This gave us the incubation period in hours.  We can now look at this on a graph:
-
-
-**Plot of incubation period:**
-
-```{r incubation_ggplot}
-
-incplot <- linelist %>% 
-  
-  # Remove missing values:
-  drop_na(incubation) %>% 
-  
-  # Create an empty ggplot frame:
-  ggplot() +
-  
-  # Add a histogram of incubation:
-  geom_histogram(aes(x = incubation), 
-                 
-                 # Set bin widths to 6 hours:
-                 binwidth = 6) +
-  
-  # Adapt scale to better fit data
-  scale_x_continuous(breaks = seq(0, 48, 6)) + 
-  
-  # Label x and y axes:
-  labs(x = "Incubation period in 6-hour bins",
-       y = "Number of cases")
-
-# Print plot:
-incplot
-
-
-```
-
-What can you infer from the incubation periods on the histogram?
-
-
-### Epidemic curve
-
-To create an *epicurve*, we are going to use `ggplot2`. `ggplot2` is a versatile package that helps create beautiful visualizations in `R`. There are plenty good in-depth guides to the package, for example: [*The Epidemiologist R Handbook* Chapter on *ggplot*](https://epirhandbook.com/en/ggplot-basics.html) and [*ggplot2 - Elegant Graphics for Data Analysis*](https://ggplot2-book.org/index.html). 
-
-
-First, we can create an epicurve for the date of onset, limiting the input data to cases:
-
-```{r epicurve_date}
-
-# Fetch data:
-epicurve_date <- linelist %>% 
-  
-  # Filter for cases where dayonset is not missing:
-  filter(case == TRUE & !is.na(dayonset)) %>% 
-  
-  # Add factor onset_day to ggplot aesthetic:
-  ggplot(aes(x = dayonset)) + 
-  
-  # Add geom_bar:
-  geom_bar() +
-  
-  # Adapt scale to data and adjust axis label angle:
-  scale_x_datetime(
-    date_breaks = "1 day",
-    labels = label_date_short()) +
-  
-  # Update x and y axis labels:
-  labs(x = "Date of onset", 
-       y = "Number of cases") +
-  
-  # Remove unnecessary grid lines:
-  theme_bw()
-
-# Print epicurve:
-epicurve_date
-
-
-```
-
-
-As you can see, the epicurve is quite crude, because most cases had their disease onset on 12 November. To increase resolution, we could enhance the time information to include both day and hour.
-
-During the data preparation session, we already concatenated the variables `dayonset` and `starthour` together and formatted them with the `lubridate` package to create a new date-time variable called `onset_datetime`.  We can now create the epicurve with this variable:
-
-
-```{r epicurve_hour}
-
-# Fetch data:
-epicurve_hour <- linelist %>% 
-  
-  # Filter for cases where dayonset is not missing:
-  filter(case == TRUE & !is.na(onset_datetime)) %>% 
-  
-  # Add factor onset_day to ggplot aesthetic:
-  ggplot(aes(x = onset_datetime)) + 
-  
-  # Add geom_histogram:
-  geom_bar() +
-  
-  # Adjust x axis scales to a suitable unit:
-  scale_x_datetime(
-    date_breaks = "6 hours", 
-    labels = label_date_short()) +
-  
-  # Update x and y axis labels:
-  labs(x = "Date and time of onset", 
-       y = "Number of cases") +
-
-  
-  # Remove unnecessary grid lines:
-  theme_bw()
-
-# Print epicurve:
-epicurve_hour
-
-```
-
-
-Finally, we could compare the epicurve between the sexes and additionally investigate how teachers versus students were distributed. Here, `fill`  adds an additional variable to be displayed in the plot: `group` is going to determine the fill-colour of our bars. `facet_wrap` splits the graph in two: one each for the two levels of `sex`. 
-
-We will also use the function `str_glue()` to add the total number of cases to the sub-title of the plot.  `str_glue()` is a very useful function that allows you to dynamically create a summary statistic from your data within some normal text.
-
-
-```{r epicurve_stratified}
-
-# Fetch data:
-epicurve_strata <- linelist %>% 
-  
-  # Filter for cases where dayonset is not missing:
-  filter(case == TRUE & !is.na(onset_datetime)) %>% 
-  
-  # Add factor onset_day to ggplot aesthetic:
-  ggplot(aes(x = onset_datetime, fill = group)) + 
-  
-  # Add nicer fill colours:
-  scale_fill_manual(values = c("darkred", "lightblue")) +
-  
-  # Add geom_histogram:
-  geom_bar() +
-  
-  # Adjust x axis scales to a suitable unit:
-  scale_x_datetime(
-    date_breaks = "6 hours", 
-    labels = label_date_short()) +
-  
-  # Update x and y axis labels:
-  labs(x = "Date and time of onset", 
-       y = "Number of cases", 
-       fill = "Group", 
-       title = "Epicurve of the outbreak, stratified by sex",
-       subtitle = str_glue("Copenhagen, November 2006, N = {sum(linelist$case)}")) +
-
-  # Stratify by sex:
-  facet_wrap(facets = "sex",
-             ncol = 2) +
-  
-  # Add theme:
-  theme_bw()
-
-# Print epicurve:
-epicurve_strata
-
-
-
-```
-
-
-What does the stratified epicurve tell you?
-
-Try stratifying by some other variables (for example a symptom, or age categories) to explore the temporal distribution further.
 
 
 \newpage
@@ -2241,47 +2206,43 @@ Different family / link function combinations yield different measures of associ
      + `link = logit`
      + standard error variance
 
-   + For **relative risk ratios** choose:
-     + `family = poisson` & 
+   + For **relative risk** choose:
+     + `family = binomial` & 
      + `link = log` &
      + robust error variance
 
    + For **incidence rate ratios** choose:
-     + `family = poisson` &
+     + `family = poisson` or `family = quasipoisson` &
      + `link = log` &
      + standard error variance
      + Add a time offset
-     
-Note that for all ratio-based measures, it is usually necessary to exponentiate the coefficients from the model output.  The packages `broom` and `broom.mixed` (for mixed models) are designed to convert model outputs to a 'tidy' table of results.  The output tables typically include the coefficients (exponentiated if you choose that option) and their 95% confidence intervals, as well as *P* values.  The `gtsummary` package that we have already been using to look at counts and attack proportions also uses `broom` to tabulate model results.  
 
-For this case study, we are particularly interested in calculating relative risk ratios, because we have already observed that the attack proportions are relatively high (> 10%); when this is the case, the confidence intervals calculated for odds ratios become less accurate.  
 
-We could calculate relative risk using a poisson model with a log link and standard error variance, but the confidence intervals will be too wide.  In practice, this means the confidence intervals are more likely to cross 1 and fewer of them will have a significant *P* value.  This is why the error variance needs to be calculated with robust methods instead.
+Note that for all of these measures, it is usually necessary to exponentiate the coefficients from the model output.  The packages `broom` and `broom.mixed` (for mixed models) are designed to convert model outputs to a 'tidy' table of results.  The output tables typically include the coefficients (exponentiated if you choose that option) and their 95% confidence intervals, as well as *P* values.  The `gtsummary` package that we have already been using to look at counts and attack proportions also uses `broom` to tabulate model results.  
 
-In R, there are many packages that provide frameworks for executing glm poisson models; however there are much fewer options that include robust error variance.  Of these, each has different advantages and disadvantages.
 
-For example, in previous versions of this guide, we introduced the `epiR::epi.2by2()` function, which can be used to calculate risk ratios, odds ratios and other measures of epidemiological interest. However, a particular difficulty with this function is that it requires cross-tabulated data in a 2 by 2 table (as the name implies) and the values have to be presented in a specific order.  Creating the 2 by 2 table is an extra step that is more difficult to iterate through for multiple exposures.  In addition, if the input table cells are presented in the wrong order, this can lead to difficulties with interpretation.
+For this case study, we will conduct univariable analysis to calculate the relative risks, in order to identify possible vehicles of infection from all the food and drink exposures.  
 
-The package `gtsummary` which we have already been using, has a function `tbl_uvregression` which can also calculate odds ratios and relative risk.  The results are exported to a publication-ready table with little effort.  However, it is currently not possible to apply robust error variance with this function.
+*Note:*
 
-We will therefore begin by demonstrating how to calculate odds ratios for multiple variables at once, using the `gtsummary::tbl_uvregression()` function.
-
-We will then introduce the `EpiStats::cstable()` function, which can take a vector of exposure column names as input and calculates risk, odds ratios and other measures.  The results are presented in a simple table (`data.frame`).  This function is very easy to use, but the output requires a little extra formatting before it can be transformed to a publishable table for reports.  
+Here we are using a measure of association (relative risk) in order to rank the food and drink exposures in the cohort of people that attended the school dinner and identify the most likely vehicle(s) of infection.  We will use these results alongside other information to guide and focus the next steps in the investigation, which you will learn more about in forthcoming modules.  In this case we are not so concerned about the representativeness of the cohort in the general population.    
 
 
 **R coding tips:**
 
-To get started, we will pipe the list of exposure variables into `gtsummary::tbl_uvregression`.  We will calculate odds ratios by specifying the model method as `glm`, the family as `binomial` and link as `logit`.
+In R, there are many ways to run a generalised linear model (GLM) and generate measures of association.  Here we will continue using the `gtsummary` package, as it has a dedicated function, `tbl_uvregression` (short for 'tabulate univariable regression') which can calculate relative risk or other measures for multiple exposures. The results are presented in a publication-ready table. 
 
-We will also specify that we only want single rows of output for binary exposures, and we will exponentiate the results to get odds ratios.
+To get started, we will pipe the list of exposure variables that we created in the previous section (called `exposure_cols`)  into `gtsummary::tbl_uvregression`.  We will calculate the relative risks by specifying the model method as `glm`, the family as `binomial` and link as `log`.
+
+We will also specify that we only want single rows of output for binary exposures, and we will exponentiate the results to get the relative risks.
 
 
 **Table of risk ratios for food and drink exposures**
 
-```{r odds_ratios_table}
+```{r risk_ratios_table}
 
 # Pipe in the data:
-ortab <- linelist %>% 
+rrtab <- linelist %>% 
   
   # Select the variables to analyse:
   select(all_of(exposure_cols), case) %>% 
@@ -2299,7 +2260,7 @@ ortab <- linelist %>%
     y = case,
     
     # Choose the model family:
-    method.args = list(family = binomial(link = "logit")),
+    method.args = list(family = binomial(link = "log")),
     
     # Exponentiate the results:
     exponentiate = TRUE, 
@@ -2309,10 +2270,14 @@ ortab <- linelist %>%
     
   ) %>% 
   
+  # Sort the table by p-values: 
+  sort_p() %>% 
+  
+  # Convert to a flextable for printing:
   gtsummary::as_flex_table()
   
 # Print the results table:
-ortab
+rrtab
 
 ```
 
@@ -2325,180 +2290,9 @@ ortab
 
 Have a look at the output.  
 
-  1. What can you infer from this table? 
-
-  2. Do the results help to identify any potential vehicles of infection?
-
-
-Because we know that odds ratios are not usually an appropriate measure of association for high attack proportions, we will now calculate relative risk ratios instead.  To do this, we will use the `EpiStats::cstable()` function, which is equivalent to a function of the same name in STATA.
-
-To see what the raw output looks like, after running this code, type `rrtab` in your console.
-
-
-```{r rr_table_raw}
-
-# Pipe in the data:
-rrtab <- linelist %>% 
+  1. What can you infer from this table?
   
-  # Select the variables to analyse:
-  select(all_of(exposure_cols), case) %>% 
-  
-  # Remove missing values:
-  drop_na() %>% 
-  
-  # Calculate risk ratios:
-  EpiStats::cstable(
-    
-    # Define outcome variable:
-    cases = "case", 
-    
-    # Define exposure columns:
-    exposure = c(exposure_cols),
-    
-    # Calculate Fisher's exact test for P values:
-    exact = TRUE, 
-    
-    # Sort output by relative risk:
-    sort = "rr"
-    
-    )
-
-```
-
-&nbsp;
-&nbsp;
-&nbsp;
-&nbsp;
-
-The `EpiStats::cstable()` function produces simple tabular output that is sufficient for viewing and interpreting your results.  However, this format is not suitable for directly including in a report, and the column names are abbreviated, which makes them hard to interpret. 
-
-In the code chunk below, we first extract the data.frame containing the tabular output. Column names are cleaned with `janitor::clean_names()` and  the row names are added to the table as the first column.  We use the `tidyr::unite()` function to bind the lower and upper confidence intervals together in a single column, as this makes them easier to read.
-
-We then convert the output to a publication ready table, using the package `flextable`.  Similar to a `ggplot` graph, flextables are built in layers and the functions in the package give very fine control over all of the features. In this code we have made adjustments to the text alignment of the columns and headers, made the header rows bold and italic, added some vertical borders between the sub-sections of the table and gave the columns some easy to interpret labels.  We also highlighted rows with a *p* value of less than 0.05 in yellow.    
-
-
-**Table of relative risks for outbreak exposures: publication-ready**
-
-```{r rr_table_publication}
-
-# Define style for flextable border line
-border_style = officer::fp_border(color = "black", width = 1)
-
-
-  # Extract the data.frame from the list of outputs:
-  rrtab_pub <- rrtab$df %>% 
-    
-    # Clean column names:
-    janitor::clean_names() %>% 
-    
-    # Convert row names with exposures to first column:
-    rownames_to_column(var = "exposure") %>% 
-    
-    # Merge lower and upper 95% CI in a new column:
-    tidyr::unite(col = "ci95", 
-                 starts_with("ci_"), 
-                 sep = " - ", 
-                 remove = TRUE)  %>% 
-    
-    # Convert to a flextable:
-    flextable::flextable() %>% 
-    
-    # Set column labels:
-    flextable::set_header_labels(values = list(
-      exposure = "Exposure",
-      tot_exp = "Total",
-      exp_cases = "Cases",
-      ar_percent = "Attack %", 
-      tot_unex = "Total", 
-      unex_cases = "Cases", 
-      ar_percent_2 = "Attack %", 
-      rr = "RR",
-      ci95 = "95% CI", 
-      p_fisher = "P (Fisher)")) %>% 
-    
-    # Add title header row:
-    flextable::add_header_row(
-      values = c("Exposure", 
-                 "Exposed", 
-                 "Unexposed", 
-                 "Relative Risk", 
-                 "P (Fisher)"), 
-      colwidths = c(1, 3, 3, 2, 1)) %>% 
-    
-    # Merge cells in header rows:
-    merge_at(i = 1:2, j = 1, part = "header") %>% 
-    merge_at(i = 1:2, j = 10, part = "header") %>% 
-    
-    # Right align numeric results columns:
-    flextable::align(j = 2:10, 
-                     align = "right", 
-                     part = "body") %>%
-    
-    # Center align top header row:
-    flextable::align(i = 1, 
-                     j = 2:9, 
-                     align = "center", 
-                     part = "header") %>% 
-    
-    # Right align second header row:
-    flextable::align(i = 2, 
-                     j = 2:9, 
-                     align = "right", 
-                     part = "header") %>%
-    
-    # Make merged cells on top header row bold:
-    flextable::bold(i = 1:2, 
-                    j = c(1, 10), 
-                    bold = TRUE, 
-                    part = "header") %>% 
-    
-    # Make other cells on top header row bold:
-    flextable::bold(i = 1, 
-                    j = 2:9, 
-                    bold = TRUE, 
-                    part = "header") %>% 
-    
-    # Make bottom header row italic:
-    flextable::italic(i = 2, 
-                      j = 2:9, 
-                      italic = TRUE, 
-                      part = "header") %>% 
-
-    # Add highlighting of significant values:
-    flextable::bg(i = ~ p_fisher < 0.05, 
-                  j = 1:10,
-                  bg = "yellow") %>%
-    
-    # Add vertical borders between sections:
-    flextable::vline(part = "all", j = 1, border = border_style) %>% 
-    flextable::vline(part = "all", j = 4, border = border_style) %>%
-    flextable::vline(part = "all", j = 7, border = border_style) %>%
-    flextable::vline(part = "all", j = 9, border = border_style) %>%
-    
-    # Autofit column width to text width:
-    flextable::set_table_properties(
-      width = 1, 
-      layout = "autofit")
-
-
-# Print the results table:
-rrtab_pub
-
-```
-
-&nbsp;
-&nbsp;
-&nbsp;
-&nbsp;
-    
-If you are interested in learning more about `flextable`, you can find some illustrated examples in [chapter 29 of the Epidemiologist R handbook](https://epirhandbook.com/en/tables-for-presentation.html).  Alternatively, you may wish to have a look at the [online flextable book](https://ardata-fr.github.io/flextable-book/) for coverage of more advanced features. 
-
-
-**Questions to consider:**
-
-  1. Compare the odds ratios and risk ratios for each exposure - which do you think is more informative, and why?
-  
-  2. Considering the risk ratios, which food or drink items do you think were likely to be the vehicle(s) of infection in this outbreak?
+  2. Considering the relative risks, which food or drink items do you think were most likely to be the vehicle(s) of infection in this outbreak?
   
   3. Do you think there are any confounders or effect modifiers?  If so, how would you investigate these further?
 
@@ -2619,9 +2413,12 @@ wilcox.test(as.numeric(class) ~ case, data = linelist)
 
 Note that in base R, this test uses formula notation, where the two variables you are assessing for an association are separated by a tilde (`~`).  In addition, the first variable is expected to be numeric.  
 
-What do these results tell you - is there an association between class number and being a case? 
 
-If so, what is it?
+**Questions to consider:**
+
+  1. What do these results tell you - is there an association between class number and being a case? 
+
+  2. If so, what is it?
 
 
 **03. Is there a difference between age in males and females?** 
@@ -2666,7 +2463,7 @@ linelist %>%
 
 Note that `shapiro.test()` expects a numeric variable as input; here we have used `filter()`, `select()` and `pull()` to pass a variable of the correct format to the test.
 
-Unfortunately, the results show that age still deviates significantly from a normal distribution, even among students.  
+The results show that age still deviates significantly from a normal distribution, even among students.  
 
 
 *Note:*
@@ -2737,36 +2534,62 @@ wilcox.test(pastaD ~ case, data = linelist)
   2. Why do you think this is the case?
 
 
-We can quickly iterate through the rest of the dose response variables using the `purrr::map()` function.  `purrr` is another tidyverse package, and works in a similar way to the `across()` and `if_any()` or `if_all()` functions, in that it takes a list of variables and a function as input and will apply the function to each variable in the list.  In this case, `.x` is used as the wild card in the formula (standing in for variable names) and we have pasted the formula together for `wilcox.test()` (remember it takes the format `numeric ~ response variable`). 
+We can quickly iterate through the rest of the dose response variables by using the `gtsummary::tbl_uvregression()` function again.  First we will create a list of the dose response variables:
+
+```{r dose_response_cols}
+
+# Start with the linelist:
+dr_cols <- linelist %>% 
+  
+  # Select all the columns ending in upper case 'D':
+  select(ends_with("D", ignore.case = FALSE)) %>% 
+  
+  # Extract the names of these columns into a vector:
+  names()
+
+```
 
 
-```{r doseresponse_vars_rr}
+Next, we can iterate through each of the dose-response columns, calculate and tabulate the relative risks, with `gtsummary::uvregression()`.
 
-### Pipe in the data:
-rrdrtab <- linelist %>% 
+
+```{r rr_doseresponse_table}
+
+# Pipe in the data:
+drtab <- linelist %>% 
   
   # Select the variables to analyse:
-  select(ends_with("D", ignore.case = FALSE), case) 
-
-
-### Create list of dose response variables:
-dr_cols <- names(rrdrtab)[!names(rrdrtab) %in% c("case")]
-
-
-### Pass dose response columns to formula:
-dr_cols %>% 
+  select(all_of(dr_cols), case) %>% 
   
-  # Set dose resonse column names:
-  set_names() %>%
+  # Remove missing values:
+  drop_na() %>% 
   
-  # Map them to the wilcox.test function:
-  purrr::map(.f = ~ wilcox.test(
+  # Calculate risk ratios and tabulate results:
+  gtsummary::tbl_uvregression(
     
-    # Name the data set:
-    data = linelist, 
+    # Choose the model (generalised linear model)
+    method = glm, 
     
-    # Paste together the test formula, using '.x' as a wild card:
-    as.formula(str_c(.x,"~","case"))))
+    # Name the outcome variable:
+    y = case,
+    
+    # Choose the model family:
+    method.args = list(family = binomial(link = "log")),
+    
+    # Exponentiate the results:
+    exponentiate = TRUE 
+ 
+  ) %>% 
+  
+  # Sort the table by p-values: 
+  sort_p() %>% 
+  
+  # Convert to a flextable for printing:
+  gtsummary::as_flex_table()
+  
+# Print the results table:
+drtab
+
 
 ```
 
@@ -2776,9 +2599,13 @@ dr_cols %>%
 &nbsp;
 &nbsp;
 
-Now that you can see the rest of the dose response results, are there any that surprise you?  
+**Questions to consider:**
 
-If so can you think of an explanation? (hint: think about effect modifiers and confounders).  
+  1. How do these results differ from those for the binary exposures? 
+  
+  2. Are there any results that surprise you?
+  
+  3. If so can you think of an explanation? (hint: think about effect modifiers and confounders).  
 
 
 \pagebreak
@@ -2817,7 +2644,7 @@ In this section, you will:
 
 **R coding tips:**
 
-To perform stratified analysis, we will use another function from the `EpiStats` package, `csinter()`.  This function requires the data set, case, exposure and stratifier columns as input.
+To perform stratified analysis, we will use a function from the `EpiStats` package, `csinter()`.  This function requires the data set, case, exposure and stratifier columns as input.
 
 First we will convert the relevant variables to numeric (0 and 1) as this is the format required by `csinter`:
 
@@ -2856,10 +2683,10 @@ vealstrata <- csinter(x = stratall,
 
 Now we can extract and print the stratum-specific risk ratios.  These show the risk ratios for people who:
 
-   + (a) - ate pasta (exposed) and veal (veal = 1)
-   + (b) - didn't eat pasta (unexposed) but ate veal (veal = 1)
-   + (c) - ate pasta (exposed) but did not eat veal (veal = 0)
-   + (d) - didn't eat pasta (unexposed) and didn't eat veal (veal = 0)
+   (a) ate pasta (exposed) and veal (veal = 1)
+   (b) didn't eat pasta (unexposed) but ate veal (veal = 1)
+   (c) ate pasta (exposed) but did not eat veal (veal = 0)
+   (d) didn't eat pasta (unexposed) and didn't eat veal (veal = 0)
 
 
 **Pasta stratified by veal: stratum-specific risk ratios** 
