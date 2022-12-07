@@ -829,7 +829,7 @@ contourmap <- ggplot2::ggplot() +
   geom_density2d(data = caselist, 
                  mapping = aes(x = home_long, 
                                y = home_lat, 
-                               alpha = ..level..),
+                               alpha = after_stat(level)),
                  contour_var = "count") # Count cases per grid square
 
 # View the contour map:
@@ -868,7 +868,7 @@ heatmap <- ggplot2::ggplot() +
                                y = home_lat, 
                                fill = ..level.., 
                                alpha = ..level..), 
-                 size = 0.01,  
+                 linewidth = 0.01,  
                  bins = 50, # Changing the bins will change how the map looks
                  geom = "polygon") + 
   
