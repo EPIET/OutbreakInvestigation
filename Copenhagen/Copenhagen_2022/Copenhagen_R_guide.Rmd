@@ -2304,31 +2304,52 @@ Have a look at the output.
 
 In this section, we will test specific hypotheses, to determine whether certain characteristics are associated with being a case (other than exposure to a potential food vehicle). The characteristics we can look at include:
 
-   + sex
-   + age
-   + school class
-   + group (student or teacher)
+   + **Continuous variables:**
+     + age
+     + incubation period
 
-
+   + **Categorical variables:**
+     + sex
+     + school class
+     + group (student or teacher)
+     
 We can also look at potential assocations between each of these characteristics; for example we already saw in the age sex pyramid that there were more females than male cases; this appeared to be the case for all age groups, but we can investigate this further with a statistical test.
 
-For Hypothesis testing, we will use the `chisq.test()`, `wilcox.test()`, and `fisher.test()` functions. Before performing any statistical test in R, you will need to know the kind of data it accepts and what format the data should be in.  It is also useful to know if there are default settings for the function's arguments, and determine whether these default values will suit your objective or not.
+For Hypothesis testing, we will use the following tests:
 
-For now, type `?chisq.test()` into your RStudio console to bring up the help page and find out more about the function. Alternatively, you can type `chisq.test` in the search bar of the help tab.
+   + **For continuous variables:**
+     + `shapiro.test()` (for checking if normally distributed)
+     + `t.test()` (for normal distributions)
+     + `wilcox.test()` (for non-parametric testing)
 
-   + Which inputs does it require? 
-   + What are the default settings for each of the function's arguments? 
-   + Do they seem reasonable for our application? 
+   + **For categorical variables:**
+     + `chisq.test()` (if all comparisons include at least 5 cases)
+     + `fisher.test()` (if there are < 5 cases for any comparison)
 
 
-Note that, as always, there are several different ways to perform these tests in R. [Chapter 18 of the Epidemiologist R handbook](https://epirhandbook.com/en/simple-statistical-tests.html) describes three different options to perform simple statistical tests; base R, with the `rstatix` package and with `gtsummary`, as we have already seen.  In the code below, as our main objective is exploratory, we will use a mix of base R and `janitor::tabyl`.
+*Note:* 
+
+This is not an exhaustive list of tests, but just the ones that we will explore in this case study, which are relevant for comparisons between two groups.
+
+As always, there are several different ways to perform these tests in R. [Chapter 18 of the Epidemiologist R handbook](https://epirhandbook.com/en/simple-statistical-tests.html) describes three different options to perform simple statistical tests; base R, with the `rstatix` package and with `gtsummary`, as we have already seen.  In the code below, as our main objective is exploratory, we will use the tests in base R and `janitor::tabyl` to produce the 2x2 tables that some of the tests require as input.
+
+Before performing any statistical test in R, you will need to know the kind of data it accepts and what format the data should be in.  It is also useful to know if there are default settings for the function's arguments, and determine whether these default values will suit your objective or not.
+
+For now, type `?chisq.test()` into your RStudio console to bring up the help page and find out more about the function. Alternatively, you can type `chisq.test` in the search bar of the RStudio help tab.
+
+  1. Which types of inputs does it require? 
+  2. What are the default settings for each of the function's arguments?
+  3. Do they seem reasonable for our application? 
 
 
 **01. Is sex associated with being a case?** 
 
-We already had a look at potential associations between the sex of respondents and being a case, when we were calculating attack proportions with the `gtsummary` package. However, you may wish to investigate potential associations individually, before deciding what to include in a summary table.  
+We already had a look at potential associations between the sex of respondents and being a case, when we were calculating attack proportions with the `gtsummary` package.  This package also automatically performs a statistical test for differences between groups, when you use the `add_p()` function.  The default tests to apply are based on the criteria described above.
 
-Here we will perform a chi square test, after first creating a 2x2 cross-tabulation with the `janitor::tabyl()` function.  Note that `chisq.test()` expects a 2x2 matrix (numeric table) as input.
+Here we will go through the decision-making process for the choice of test step by step.
+
+First, we consider what type of test to apply; sex is a categorical variable, so we can perform a chi square test.  However, we wiil 
+Because sex is a categorical variable, we will perform a chi square test, after first creating a 2x2 cross-tabulation with the `janitor::tabyl()` function.  Note that `chisq.test()` expects a 2x2 matrix (numeric table) as input.
 
 
 ```{r htest_sex_case}

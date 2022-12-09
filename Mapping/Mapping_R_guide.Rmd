@@ -467,7 +467,8 @@ This map will be used as the base layer.
 ```{r boundary box UK}
 
 # First, define the boundaries of the map you want to import:
-ukbb <- osmdata::getbb(place_name = "United Kingdom", featuretype = "country")
+ukbb <- osmdata::getbb(place_name = "United Kingdom", 
+                       featuretype = "country")
 
 
 # Next, get the base layer map matching this boundary box: 
@@ -487,7 +488,8 @@ Getting a map of the whole of the UK produces a lot of empty space (ocean) becau
 ```{r boundary box England}
 
 # First, define the boundaries of the map you want to import:
-englandbb <- osmdata::getbb(place_name = "England", featuretype = "settlement")
+englandbb <- osmdata::getbb(place_name = "England", 
+                            featuretype = "settlement")
 
 
 # Next, get the base layer map matching this boundary box: 
