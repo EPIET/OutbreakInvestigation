@@ -89,6 +89,9 @@ knit_hooks$set(output = function(x, options) {
 
 # Preamble {.tabset .tabset-pills}
 
+Example edits
+
+
 ## Version history
 
 This document is the R practical guide for the *Copenhagen* case study as taught in the **Outbreak Investigation module** in `r format(Sys.Date(), format = "%B %Y")`.
