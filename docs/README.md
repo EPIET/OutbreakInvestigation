@@ -1,23 +1,18 @@
 EPIET case studies: R guides
 ================
-04 December 2022
+18 September 2023
 
--   <a href="#overview" id="toc-overview">Overview</a>
-    -   <a href="#school-dinner-case-study"
-        id="toc-school-dinner-case-study">School dinner case study</a>
-    -   <a href="#social-network-analysis-practical"
-        id="toc-social-network-analysis-practical">Social network analysis
-        practical</a>
-    -   <a href="#mapping-case-study" id="toc-mapping-case-study">Mapping case
-        study</a>
-    -   <a href="#campylobacter-waterborne-outbreak-case-study"
-        id="toc-campylobacter-waterborne-outbreak-case-study">Campylobacter
-        waterborne outbreak case study</a>
--   <a href="#github-repository" id="toc-github-repository">Github
-    repository</a>
-    -   <a href="#contributing" id="toc-contributing">Contributing</a>
-    -   <a href="#comments-and-suggestions"
-        id="toc-comments-and-suggestions">Comments and suggestions</a>
+- [Overview](#overview)
+  - [Copenhagen School dinner case
+    study](#copenhagen-school-dinner-case-study)
+  - [Social network analysis
+    practical](#social-network-analysis-practical)
+  - [Mapping case study](#mapping-case-study)
+  - [Campylobacter waterborne outbreak case
+    study](#campylobacter-waterborne-outbreak-case-study)
+- [Github repository](#github-repository)
+  - [Contributing](#contributing)
+  - [Comments and suggestions](#comments-and-suggestions)
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
@@ -28,10 +23,10 @@ Investigation module (OIM)**.
 
 In particular, you will find the R materials for:
 
--   School dinner foodborne outbreak case study (Copenhagen, Denmark)
--   Social network analysis practical exercise
--   Unpasteurised milk geospatial analysis and mapping case study (UK)
--   *Campylobacter* water-borne outbreak case study (optional exercise)
+- School dinner foodborne outbreak case study (Copenhagen, Denmark)
+- Social network analysis practical exercise
+- GIS mapping raw milk outbreak case study (UK)
+- *Campylobacter* water-borne outbreak case study (optional exercise)
 
 Credits go to the original authors of the case studies, as well as the
 contributors who subsequently adapted the R companion guides (see
@@ -44,34 +39,34 @@ conditions](https://github.com/EPIET/OutbreakInvestigation/blob/master/LICENSE)
 before using or distributing this case study. Additional details on
 distrubution are also included in the case study guides.
 
-### School dinner case study
+### Copenhagen School dinner case study
 
 To follow the Copenhagen school dinner case study, you will need:
 
--   [R Copenhagen case study
-    materials](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_casestudy.zip)
-    (contains data sets, case study guide and R coding template)
--   [R Copenhagen case study
-    guide](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_guide.html)
-    (online version)
+- [R Copenhagen case study
+  materials](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_casestudy.zip)
+  (contains data sets, case study guide and R coding template)
+- [R Copenhagen case study
+  guide](https://epiet.github.io/OutbreakInvestigation/Copenhagen_R_guide.html)
+  (online version)
 
 ### Social network analysis practical
 
 To follow the social network analysis practical, you will need:
 
--   [R Social network analysis practical materials
-    folder](https://epiet.github.io/OutbreakInvestigation/Network_analysis_practical.zip)
+- [R Social network analysis practical materials
+  folder](https://epiet.github.io/OutbreakInvestigation/Network_analysis_practical.zip)
 
 ### Mapping case study
 
 To follow the UK mapping case study, you will need:
 
--   [R mapping case study
-    materials](https://epiet.github.io/OutbreakInvestigation/Mapping_R_casestudy.zip)
-    (contains data sets, case study guide and R coding template)
--   [R mapping case study
-    guide](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html)
-    (online version)
+- [R mapping case study
+  materials](https://epiet.github.io/OutbreakInvestigation/Mapping_R_casestudy.zip)
+  (contains data sets, case study guide and R coding template)
+- [R mapping case study
+  guide](https://epiet.github.io/OutbreakInvestigation/Mapping_R_guide.html)
+  (online version)
 
 ### Campylobacter waterborne outbreak case study
 
@@ -83,12 +78,12 @@ adapt the code to consolidate your learning.
 To follow the *Campylobacter* waterborne outbreak case study, you will
 need:
 
--   [R Campylobacter case study
-    materials](https://epiet.github.io/OutbreakInvestigation/Campy_R_casestudy.zip)
-    (contains data sets, case study guide and R coding template)
--   [R Campylobacter case study
-    guide](https://epiet.github.io/OutbreakInvestigation/Campy_R_guide.html)
-    (online version)
+- [R Campylobacter case study
+  materials](https://epiet.github.io/OutbreakInvestigation/Campy_R_casestudy.zip)
+  (contains data sets, case study guide and R coding template)
+- [R Campylobacter case study
+  guide](https://epiet.github.io/OutbreakInvestigation/Campy_R_guide.html)
+  (online version)
 
 ## Github repository
 
@@ -96,10 +91,10 @@ need:
 
 The R code for the case study guides and practical materials on this
 page are hosted on the [Outbreak Investigation Module Github
-repository](https://github.com/EPIET/OutbreakInvestigation/tree/master/Mapping).
-Suggestions and updates are welcome; please check out your own branch to
-commit the updates and then submit a pull request. Write access to the
-repository can be provided on request.
+repository](https://github.com/EPIET/OutbreakInvestigation). Suggestions
+and updates are welcome; please check out your own branch to commit the
+updates and then submit a pull request. Write access to the repository
+can be provided on request.
 
 ### Comments and suggestions
 
