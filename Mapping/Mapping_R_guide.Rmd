@@ -28,6 +28,8 @@ always_allow_html: true
 
 ```{r setup, include=FALSE, purl=FALSE}
 
+# Check connection
+
 # Output to R script:
 knitr::knit_hooks$set(purl = knitr::hook_purl)
 
